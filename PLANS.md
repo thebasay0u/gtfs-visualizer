@@ -118,11 +118,11 @@ The agent executing your plan can list files, read files, search, run the projec
 
 Format and envelope are simple and strict.
 
-1) YAML front matter is required and must be first.
+1. YAML front matter is required and must be first.
 
 The ExecPlan must begin with the YAML front matter described above. It is part of the plan and must remain accurate. When the plan is materially revised, update the `updated` date and record key decisions in the `Decision Log`.
 
-2) ExecPlan body format.
+2. ExecPlan body format.
 
 Each ExecPlan must be one single fenced code block labeled as `md` that begins and ends with triple backticks. Do not nest additional triple-backtick code fences inside. When you need to show commands, transcripts, diffs, or code, present them as indented blocks within that single fence. Use indentation for clarity rather than code fences inside an ExecPlan to avoid prematurely closing the ExecPlan's code fence. Use two newlines after every heading, use `#` and `##` and so on, and correct syntax for ordered and unordered lists.
 
@@ -293,3 +293,75 @@ In crates/foo/planner.rs, define:
 ---
 
 When you revise a plan, you must ensure your changes are comprehensively reflected across all sections, including the living document sections. Update the YAML `updated` date, add an entry to `Decision Log` when appropriate, and write a short note at the bottom of the plan describing the change and the reason why.
+
+---
+
+## GTFS Visualizer Project Extensions
+
+The following rules extend (but do not override) the core ExecPlan system defined above.
+
+### 1. Domain-Specific Requirements
+
+All ExecPlans in this repository MUST:
+
+- Operate strictly within **GTFS-static scope**
+- Explicitly define relationships between:
+  - routes ↔ trips
+  - trips ↔ stop_times
+  - stop_times ↔ stops
+  - trips ↔ shapes (optional)
+  - service_id ↔ calendar/calendar_dates
+
+- Handle real-world GTFS inconsistencies:
+  - orphan records
+  - missing optional files
+  - duplicate or conflicting IDs
+  - incomplete service calendars
+
+---
+
+### 2. Visualization Requirements
+
+ExecPlans that involve UI or visualization MUST:
+
+- Ensure every visual element maps directly to GTFS data
+- Clearly distinguish entity types:
+  - routes vs trips vs stops vs stop_times
+- Avoid inferred relationships unless explicitly labeled
+- Support progressive disclosure (avoid clutter)
+
+---
+
+### 3. Execution Priority (V1)
+
+ExecPlans should prioritize:
+
+1. GTFS ingestion correctness
+2. Relationship mapping accuracy
+3. Basic visualization (map + routes)
+4. Interactive exploration
+5. Performance optimization
+
+---
+
+### 4. Architectural Guardrails
+
+- Parsing logic MUST be isolated from visualization logic
+- GTFS entities MUST remain loosely coupled
+- APIs MUST reflect validated data only
+- Visualization MUST NOT depend on raw GTFS parsing layer
+
+---
+
+### 5. Initial ExecPlan Guidance
+
+The first ExecPlan in this repository MUST:
+
+- Establish GTFS ingestion pipeline
+- Define normalized data models
+- Implement baseline relationship mapping
+- Provide validation/error surfacing
+- Enable local development workflow
+
+No UI-heavy features should be included in the first ExecPlan unless required for validation.
+```
