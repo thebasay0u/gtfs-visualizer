@@ -1,7 +1,7 @@
 ---
 id: EP-20260329-001
 title: "Establish GTFS static foundation"
-status: planned
+status: done
 kind: feature
 domain: cross-cutting
 owner: "@codex"
@@ -36,7 +36,7 @@ The first user-visible proof point is intentionally local and backend-first. A d
 - [x] (2026-03-29T20:04:11Z) Authored this ExecPlan and defined the initial milestone set `MS001` through `MS003` under `.agent/exec_plans/active/gtfs-foundation/`.
 - [x] (2026-03-29T23:24:43Z) Completed `MS001` by adding a repository-local Python virtual environment workflow, fixture-based GTFS-static test feeds, a single ingestion entry point, and an automated test loop that proves raw feed loading works.
 - [x] (2026-03-30T00:10:38Z) Completed `MS002` by adding normalized GTFS entity models, a separate relationship mapping layer, the `normalized_entities.json` and `relationships.json` artifacts, and fixture-driven tests that prove optional shapes do not break relationship mapping.
-- [ ] The implementation work described by `MS003` has not started yet. Remaining work includes validation severity rules, error surfacing, and partial-ingestion behavior.
+- [x] (2026-03-30T04:50:08Z) Completed `MS003` by adding a dedicated validation layer, fixed v1 validation codes, `validation_report.json`, explicit partial-ingestion reporting, fatal artifact suppression for normalized and relationship outputs, and fixture-driven tests for valid, warning-only, invalid, duplicate-id, and unknown-shape scenarios.
 
 ## Surprises & Discoveries
 
@@ -54,6 +54,9 @@ The first user-visible proof point is intentionally local and backend-first. A d
 
 - Observation: The normalized shape count is materially different from the raw `shapes.txt` row count because shapes normalize into shape identifiers, each with an ordered list of shape points.
   Evidence: For `minimal-static-feed`, `feed_summary.json` reports `shapes=2` raw rows, while `normalized_entities.json` reports `shapes=1` normalized shape entity.
+
+- Observation: The original minimal fixture could not satisfy the planned clean-path validation contract because it was missing `calendar_dates.txt`, which MS003 treats as an explicit warning code.
+  Evidence: Before adding `sample-data/fixtures/minimal-static-feed/calendar_dates.txt`, validating the minimal fixture produced `MISSING_OPTIONAL_CALENDAR_DATES_FILE` and `valid_with_warnings` instead of `valid`.
 
 ## Decision Log
 
@@ -81,13 +84,25 @@ The first user-visible proof point is intentionally local and backend-first. A d
   Rationale: This preserves the MS001 raw-ingestion contract and keeps normalized entity inspection separate from pure relationship output, which aligns with the repository's modularity and traceability rules.
   Date/Author: 2026-03-29 / @codex
 
+- Decision: Fix the MS003 validation codes to the v1 set named in the implementation plan and make those codes the stable contract for tests and CLI-visible findings.
+  Rationale: Stable codes are necessary for traceable automated tests, deterministic artifact parsing, and future UI or API consumers without changing the semantics of a finding.
+  Date/Author: 2026-03-29 / @codex
+
+- Decision: Allow normalization and relationship mapping to run in memory before validation completes, but suppress `normalized_entities.json` and `relationships.json` whenever the validation status is `invalid`.
+  Rationale: This preserves modular processing and keeps the validator independent of loader internals while enforcing the raw-only partial-ingestion policy on fatal findings.
+  Date/Author: 2026-03-29 / @codex
+
+- Decision: Define `source_row` as the 1-based data row number in the source file, excluding the header row, and use `0` only for file-level findings that have no data row.
+  Rationale: This keeps row references human-readable and consistent across normalized entities, relationship-derived findings, duplicate detection, and missing-file warnings.
+  Date/Author: 2026-03-29 / @codex
+
 ## Outcomes & Retrospective
 
-`MS001` and `MS002` are complete. The repository now has a local-first backend foundation with raw feed loading, normalized GTFS entities, baseline relationship mapping, and CLI inspection artifacts that separate raw input state, normalized entity state, and relationship state. The remaining work is intentionally limited to `MS003`: structured validation, error surfacing, and partial-ingestion behavior.
+This ExecPlan is complete. The repository now has a local-first GTFS-static foundation with raw feed loading, normalized GTFS entities, baseline relationship mapping, structured validation findings, fixed severity codes, and explicit partial-ingestion behavior. A valid feed writes all four artifacts, a warning-only feed preserves successful ingestion with surfaced warnings, and an invalid feed exits non-zero while writing only the raw summary and validation report. The main lesson from the foundation phase is that raw loading, normalization, relationship mapping, and validation each needed a distinct module boundary to keep later work explainable and testable.
 
 ## Context and Orientation
 
-As of 2026-03-29 after completing `MS002`, this repository contains `AGENTS.md`, `PLANS.md`, `.agent/templates/`, a Python project definition in `pyproject.toml`, implementation code under `src/gtfs_visualizer/`, fixture feeds under `sample-data/fixtures/`, and automated tests under `tests/`. There is still no UI, persistence layer, or validation module, but there is now a relationship engine under `src/gtfs_visualizer/relationships/` and a normalized model layer under `src/gtfs_visualizer/models/`.
+As of 2026-03-29 after completing `MS003`, this repository contains `AGENTS.md`, `PLANS.md`, `.agent/templates/`, a Python project definition in `pyproject.toml`, implementation code under `src/gtfs_visualizer/`, fixture feeds under `sample-data/fixtures/`, and automated tests under `tests/`. There is still no UI or persistence layer, but there are now dedicated modules for raw ingestion, normalized models, relationship mapping, and validation under `src/gtfs_visualizer/`.
 
 This plan uses four plain-language terms consistently. A "GTFS-static feed" means the bundle of text files such as `routes.txt`, `trips.txt`, `stops.txt`, `stop_times.txt`, `calendar.txt`, and optional files like `shapes.txt` and `calendar_dates.txt`. A "normalized model" means an internal representation that stores one source of truth per entity type with stable keys and explicit fields, rather than passing raw tables throughout the codebase. A "relationship graph" means the validated links across those normalized entities, such as which trips belong to which route and which stop times refer to which stop. A "validation report" means a structured list of issues with severity, message, entity references, and whether the feed can proceed to downstream use.
 
@@ -128,11 +143,12 @@ After `MS001` and `MS002` are implemented, the repository should support a local
 The expected terminal summary should be short and human-readable, similar to:
 
     Feed loaded: sample-data\fixtures\minimal-static-feed
-    Loaded files: routes.txt, trips.txt, stops.txt, stop_times.txt, calendar.txt, shapes.txt
-    Rows: routes=1, trips=1, stops=2, stop_times=2, calendar=1, shapes=2
+    Loaded files: routes.txt, trips.txt, stops.txt, stop_times.txt, calendar.txt, shapes.txt, calendar_dates.txt
+    Rows: routes=1, trips=1, stops=2, stop_times=2, calendar=1, shapes=2, calendar_dates=1
     Entities: routes=1, trips=1, stop_times=2, stops=2, services=1, shapes=1
     Relationships: route_to_trips=1, trip_to_stop_times=2, stop_time_to_stops=2, trip_to_shapes=1, service_to_calendar=1
-    Optional missing: calendar_dates.txt
+    Optional missing: none
+    Validation: 0 errors, 0 warnings
     Output written to .tmp\minimal-report\feed_summary.json
 
 The same command should leave these inspection artifacts in the selected output directory:
@@ -148,20 +164,24 @@ After `MS003` is implemented, a broken fixture feed should demonstrate surfaced 
 
 The expected terminal summary should make failure explicit, similar to:
 
-    Feed loaded: sample-data/fixtures/invalid-relations-feed
-    Validation: 2 errors, 1 warning
-    Error: stop_times.txt row 14 references unknown stop_id STOP_MISSING
-    Error: trips.txt row 3 references unknown service_id WKD_UNKNOWN
-    Report written to .tmp/invalid-report
-    Exit status: 1
+    Feed loaded: sample-data\fixtures\invalid-relations-feed
+    Loaded files: routes.txt, trips.txt, stops.txt, stop_times.txt, calendar.txt
+    Rows: routes=1, trips=1, stops=1, stop_times=2, calendar=1
+    Optional missing: shapes.txt, calendar_dates.txt
+    Validation: 4 errors, 3 warnings
+    Error [UNKNOWN_STOP_ID]: Stop time T1:1 references unknown stop_id STOP_MISSING
+    Error [UNKNOWN_TRIP_ID]: Stop time T_UNKNOWN:2 references unknown trip_id T_UNKNOWN
+    Error [UNKNOWN_ROUTE_ID]: Trip T1 references unknown route_id R_UNKNOWN
+    Error [UNKNOWN_SERVICE_ID]: Trip T1 references unknown service_id WKD_UNKNOWN
+    Output written to .tmp\invalid-report\feed_summary.json
 
 ## Validation and Acceptance
 
 Acceptance for this ExecPlan is behavior-based rather than code-structure-based. A contributor should be able to run the local ingestion command on a valid minimal GTFS-static fixture and observe all of the following: the command exits successfully, normalized entity counts are reported, the required relationship chains are linked, optional files are handled without crashes, and the expected inspection artifacts are written to disk.
 
-The contributor should also be able to run the same command against at least one intentionally broken fixture and observe a structured validation result that clearly identifies the broken relationship, the offending source file and record, and whether processing continued in a partial state or stopped as invalid. Automated tests in `tests/` should cover both clean and broken fixture feeds. Those tests must prove at least these cases: valid minimal feed, missing optional shapes file, orphan stop reference, inconsistent service identifier, and duplicate identifier handling.
+The contributor should also be able to run the same command against a warning-only fixture and an intentionally broken fixture and observe a structured validation result that clearly identifies the finding code, severity, source file, source row, and whether processing continued in a partial state or stopped as invalid. Automated tests in `tests/` should cover clean, warning-only, and invalid feeds. Those tests must prove at least these cases: valid minimal feed, missing optional shapes file, orphan stop reference, unknown trip reference, inconsistent service identifier, duplicate identifier handling, and unknown shape handling.
 
-This plan is complete when three conditions are all true. First, after activating the repository virtual environment, `python -m pytest tests` passes from the repository root. Second, the local ingestion command produces the expected success and failure summaries with fixture feeds. Third, the resulting implementation keeps parsing logic, relationship mapping logic, and any future visualization-facing interfaces in separate modules so later UI work does not depend directly on raw feed parsing.
+This plan is complete when three conditions are all true. First, after activating the repository virtual environment, `python -m pytest tests` passes from the repository root. Second, the local ingestion command produces the expected valid, warning-only, and invalid summaries with fixture feeds and the correct artifact suppression behavior on fatal findings. Third, the resulting implementation keeps parsing logic, relationship mapping logic, validation logic, and any future visualization-facing interfaces in separate modules so later UI work does not depend directly on raw feed parsing.
 
 ## Idempotence and Recovery
 
@@ -176,7 +196,7 @@ The required planning artifacts for this ExecPlan live at:
     .agent/exec_plans/active/gtfs-foundation/EP-20260329-001_gtfs-foundation.md
     .agent/exec_plans/active/gtfs-foundation/milestones/archive/MS001_gtfs-foundation.md
     .agent/exec_plans/active/gtfs-foundation/milestones/archive/MS002_gtfs-foundation.md
-    .agent/exec_plans/active/gtfs-foundation/milestones/active/MS003_gtfs-foundation.md
+    .agent/exec_plans/active/gtfs-foundation/milestones/archive/MS003_gtfs-foundation.md
 
 The fixtures that should be introduced during implementation are:
 
@@ -227,13 +247,20 @@ In `src/gtfs_visualizer/validation/report.py`, define the validation contract:
 
     class ValidationIssue: ...
     class ValidationReport: ...
-    def validate_feed(feed: NormalizedFeed, graph: RelationshipGraph) -> ValidationReport:
+    def validate_feed(bundle: RawFeedBundle, feed: NormalizedFeed, graph: RelationshipGraph) -> ValidationReport:
         ...
 
-`ValidationIssue` must record severity, message, entity type, entity identifier when available, source filename, and source row reference when known. Severity must distinguish at least `warning` from `error`.
+`ValidationIssue` must record severity, fixed v1 code, message, entity type, entity identifier when available, source filename, and source row reference when known. Severity must distinguish at least `warning` from `error`. `source_row` must be the 1-based data row number in the source file, excluding the header row; use `0` only for file-level findings that have no data row.
+
+The validation artifacts should follow this split:
+
+    validation_report.json      # always written; contains status, summary, partial-ingestion, and findings
+
+When `validation_report.json` reports `status=invalid`, the CLI must still write `feed_summary.json` but must not write `normalized_entities.json` or `relationships.json`.
 
 For dependencies, use Pandas for initial table parsing because `AGENTS.md` names it as the default v1 parsing tool. Design normalized models so they can later map cleanly into SQLAlchemy models, but do not require database setup in this plan. Automated verification should use Python's standard testing flow through `pytest`.
 
 Change note: 2026-03-29. Created the first repository ExecPlan and initial milestone sequence manually because the `agentrules` CLI referenced by `PLANS.md` is not installed in the current environment.
 Change note: 2026-03-29. Updated the plan after completing `MS001` to reflect the repository-local virtual environment workflow, the implemented raw-feed loader and CLI, and the archived milestone state.
 Change note: 2026-03-29. Updated the plan after completing `MS002` to reflect the normalized model layer, separate relationship layer, new inspection artifact split, passing fixture-driven tests, and the archived milestone state.
+Change note: 2026-03-29. Updated the plan after completing `MS003` to reflect the fixed validation-code contract, validation artifact shape, partial raw-only ingestion policy, clean/warning/invalid fixture coverage, and the archived milestone state.

@@ -3,7 +3,7 @@ id: EP-20260329-001/MS003
 execplan_id: EP-20260329-001
 ms: 3
 title: "Surface validation outcomes and partial-ingestion behavior"
-status: planned
+status: done
 domain: backend
 owner: "@codex"
 created: 2026-03-29
@@ -24,11 +24,11 @@ Make feed quality visible and trustworthy. At the end of this milestone, the ing
 
 ## Definition of Done
 
-- [ ] Validation issues are reported with severity, message, entity context, and source reference
-- [ ] Broken foreign-key relationships are surfaced clearly
-- [ ] Partial-ingestion behavior is defined and observable
-- [ ] Automated tests cover broken and inconsistent fixture feeds
-- [ ] The ingestion command returns clear success and failure exit behavior
+- [x] Validation issues are reported with severity, fixed code, message, entity context, and source reference
+- [x] Broken foreign-key relationships are surfaced clearly
+- [x] Partial-ingestion behavior is defined and observable
+- [x] Automated tests cover clean, warning-only, broken, duplicate, and unknown-shape scenarios
+- [x] The ingestion command returns clear success and failure exit behavior
 
 ## Scope
 
@@ -38,6 +38,7 @@ Make feed quality visible and trustworthy. At the end of this milestone, the ing
 - Emit structured validation artifacts to the chosen output directory
 - Return terminal summaries and exit statuses that distinguish warnings from errors
 - Preserve enough source context to help a developer debug broken feeds quickly
+- Suppress `normalized_entities.json` and `relationships.json` when validation status is `invalid`
 
 ### Out of Scope
 
@@ -50,6 +51,7 @@ Make feed quality visible and trustworthy. At the end of this milestone, the ing
 
 - Validation contract: define issue severity levels and report structure.
 - Broken-feed fixtures: add at least one fixture with invalid relationships and one fixture with duplicate or conflicting identifiers.
+- Broken-feed fixtures: add at least one permanent invalid-relationships fixture and use temporary copied fixtures for duplicate and unknown-shape cases.
 - Error surfacing: update the ingestion command to print concise summaries and write detailed report artifacts.
 - Tests: verify that valid feeds succeed, warning-only feeds succeed with warnings, and error-containing feeds fail clearly.
 
@@ -65,6 +67,9 @@ Make feed quality visible and trustworthy. At the end of this milestone, the ing
 
 From the repository root, run:
 
+    py -m venv .venv
+    .\.venv\Scripts\Activate.ps1
+    python -m pip install -e .[dev]
     python -m pytest tests
 
 Expected:
@@ -73,14 +78,21 @@ Expected:
 
 Then run:
 
+    .\.venv\Scripts\Activate.ps1
+    python -m gtfs_visualizer.cli ingest sample-data/fixtures/minimal-static-feed --output-dir .tmp/ms003-valid
+    python -m gtfs_visualizer.cli ingest sample-data/fixtures/missing-shapes-feed --output-dir .tmp/ms003-warning
     python -m gtfs_visualizer.cli ingest sample-data/fixtures/invalid-relations-feed --output-dir .tmp/ms003-invalid
 
 Expected:
 
-- The command exits with status `1`.
-- The terminal lists the number of errors and warnings and includes at least one concrete issue message.
-- A structured validation artifact is written to the output directory for debugging.
+- The valid command exits with status `0` and writes `feed_summary.json`, `normalized_entities.json`, `relationships.json`, and `validation_report.json`.
+- The warning-only command exits with status `0` and writes the same four artifacts.
+- The invalid command exits with status `1`.
+- The invalid command writes `feed_summary.json` and `validation_report.json` only.
+- The invalid command does not write `normalized_entities.json` or `relationships.json`.
+- `validation_report.json` records fixed v1 codes and uses `source_row` as the 1-based data row number excluding the header row.
 
 ## Changelog
 
 - 2026-03-29: Milestone created
+- 2026-03-29: Milestone implemented, validated, and archived after adding the validation layer, fixed v1 codes, partial-ingestion policy, invalid artifact suppression, and ten passing tests

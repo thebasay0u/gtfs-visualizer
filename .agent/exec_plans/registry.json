@@ -1,11 +1,11 @@
 {
-  "generated_at": "2026-03-30T00:10:38Z",
+  "generated_at": "2026-03-30T04:50:08Z",
   "plans": [
     {
       "id": "EP-20260329-001",
       "slug": "gtfs-foundation",
       "title": "Establish GTFS static foundation",
-      "status": "planned",
+      "status": "done",
       "kind": "feature",
       "domain": "cross-cutting",
       "owner": "@codex",
@@ -57,8 +57,8 @@
           "id": "EP-20260329-001/MS003",
           "ms": 3,
           "title": "Surface validation outcomes and partial-ingestion behavior",
-          "status": "planned",
-          "path": ".agent/exec_plans/active/gtfs-foundation/milestones/active/MS003_gtfs-foundation.md"
+          "status": "done",
+          "path": ".agent/exec_plans/active/gtfs-foundation/milestones/archive/MS003_gtfs-foundation.md"
         }
       ]
     }

@@ -97,7 +97,7 @@ class NormalizedFeed:
 
 
 def _source_row(index: int) -> int:
-    return index + 2
+    return index + 1
 
 
 def _serialize_mapping[T](items: dict[str, T]) -> dict[str, dict[str, object]]:

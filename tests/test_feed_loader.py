@@ -23,8 +23,9 @@ def test_load_feed_reads_required_and_optional_files() -> None:
         "stop_times.txt",
         "calendar.txt",
         "shapes.txt",
+        "calendar_dates.txt",
     ]
-    assert bundle.missing_optional_files == ["calendar_dates.txt"]
+    assert bundle.missing_optional_files == []
     assert bundle.row_counts() == {
         "routes": 1,
         "trips": 1,
@@ -32,6 +33,7 @@ def test_load_feed_reads_required_and_optional_files() -> None:
         "stop_times": 2,
         "calendar": 1,
         "shapes": 2,
+        "calendar_dates": 1,
     }
 
 
@@ -72,7 +74,8 @@ def test_cli_ingest_writes_summary_artifact() -> None:
             "Relationships: route_to_trips=1, trip_to_stop_times=2, stop_time_to_stops=2, "
             "trip_to_shapes=1, service_to_calendar=1"
         ) in result.stdout
-        assert "Optional missing: calendar_dates.txt" in result.stdout
+        assert "Optional missing: none" in result.stdout
+        assert "Validation: 0 errors, 0 warnings" in result.stdout
 
         summary = json.loads(
             (output_dir / "feed_summary.json").read_text(encoding="utf-8")
@@ -83,6 +86,9 @@ def test_cli_ingest_writes_summary_artifact() -> None:
         relationships = json.loads(
             (output_dir / "relationships.json").read_text(encoding="utf-8")
         )
+        validation_report = json.loads(
+            (output_dir / "validation_report.json").read_text(encoding="utf-8")
+        )
 
         assert set(summary) == {
             "source_path",
@@ -90,11 +96,22 @@ def test_cli_ingest_writes_summary_artifact() -> None:
             "missing_optional_files",
             "row_counts",
         }
-        assert summary["loaded_files"][-1] == "shapes.txt"
+        assert summary["loaded_files"] == [
+            "routes.txt",
+            "trips.txt",
+            "stops.txt",
+            "stop_times.txt",
+            "calendar.txt",
+            "shapes.txt",
+            "calendar_dates.txt",
+        ]
         assert summary["row_counts"]["stop_times"] == 2
         assert normalized_entities["entity_counts"]["shapes"] == 1
         assert normalized_entities["entities"]["trips"]["T1"]["shape_id"] == "S1"
-        assert relationships["missing_optional_files"] == ["calendar_dates.txt"]
+        assert relationships["missing_optional_files"] == []
         assert relationships["mappings"]["trip_to_shape_id"] == {"T1": "S1"}
+        assert validation_report["status"] == "valid"
+        assert validation_report["summary"] == {"error_count": 0, "warning_count": 0}
+        assert validation_report["findings"] == []
     finally:
         shutil.rmtree(temp_root, ignore_errors=True)

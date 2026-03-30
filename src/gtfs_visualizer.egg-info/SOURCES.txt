@@ -9,4 +9,12 @@ src/gtfs_visualizer.egg-info/requires.txt
 src/gtfs_visualizer.egg-info/top_level.txt
 src/gtfs_visualizer/ingest/__init__.py
 src/gtfs_visualizer/ingest/feed_loader.py
+src/gtfs_visualizer/models/__init__.py
+src/gtfs_visualizer/models/normalized.py
+src/gtfs_visualizer/relationships/__init__.py
+src/gtfs_visualizer/relationships/linker.py
+src/gtfs_visualizer/validation/__init__.py
+src/gtfs_visualizer/validation/report.py
 tests/test_feed_loader.py
+tests/test_relationships.py
+tests/test_validation.py
