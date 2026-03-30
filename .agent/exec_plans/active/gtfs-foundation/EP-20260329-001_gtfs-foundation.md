@@ -35,7 +35,7 @@ The first user-visible proof point is intentionally local and backend-first. A d
 - [x] (2026-03-29T20:04:11Z) Read `AGENTS.md` and `PLANS.md`, confirmed that no prior ExecPlans or milestones exist, and reserved `EP-20260329-001` as the first canonical plan ID for this repository.
 - [x] (2026-03-29T20:04:11Z) Authored this ExecPlan and defined the initial milestone set `MS001` through `MS003` under `.agent/exec_plans/active/gtfs-foundation/`.
 - [x] (2026-03-29T23:24:43Z) Completed `MS001` by adding a repository-local Python virtual environment workflow, fixture-based GTFS-static test feeds, a single ingestion entry point, and an automated test loop that proves raw feed loading works.
-- [ ] The implementation work described by `MS002` has not started yet. Remaining work includes normalized data models and baseline relationship mapping.
+- [x] (2026-03-30T00:10:38Z) Completed `MS002` by adding normalized GTFS entity models, a separate relationship mapping layer, the `normalized_entities.json` and `relationships.json` artifacts, and fixture-driven tests that prove optional shapes do not break relationship mapping.
 - [ ] The implementation work described by `MS003` has not started yet. Remaining work includes validation severity rules, error surfacing, and partial-ingestion behavior.
 
 ## Surprises & Discoveries
@@ -51,6 +51,9 @@ The first user-visible proof point is intentionally local and backend-first. A d
 
 - Observation: Pytest's default temp and cache handling triggered sandbox-specific permission errors even though ordinary repository file writes worked.
   Evidence: Initial test runs failed with `PermissionError` under the default temp and cleanup paths. The final run passed after disabling the pytest cache and tmpdir plugins and using deterministic repo-local temporary directories inside the CLI test.
+
+- Observation: The normalized shape count is materially different from the raw `shapes.txt` row count because shapes normalize into shape identifiers, each with an ordered list of shape points.
+  Evidence: For `minimal-static-feed`, `feed_summary.json` reports `shapes=2` raw rows, while `normalized_entities.json` reports `shapes=1` normalized shape entity.
 
 ## Decision Log
 
@@ -74,13 +77,17 @@ The first user-visible proof point is intentionally local and backend-first. A d
   Rationale: The user explicitly limited MS001 to local workflow, fixture strategy, a single ingestion entry point, and the minimum test loop needed to prove ingestion works.
   Date/Author: 2026-03-29 / @codex
 
+- Decision: Split MS002 inspection artifacts into `normalized_entities.json` for normalized entity inspection and `relationships.json` for relationship mappings, while keeping `feed_summary.json` unchanged from MS001.
+  Rationale: This preserves the MS001 raw-ingestion contract and keeps normalized entity inspection separate from pure relationship output, which aligns with the repository's modularity and traceability rules.
+  Date/Author: 2026-03-29 / @codex
+
 ## Outcomes & Retrospective
 
-`MS001` is complete. The repository now has a minimal but working local-first backend foundation: a PowerShell-friendly virtual environment workflow, two tiny fixture feeds, a raw feed loader, a command-line ingestion entry point, and three passing tests that prove required-file loading and optional-file tolerance. The remaining work is still intentionally deferred to `MS002` and `MS003`: normalized models, relationship mapping, and structured validation.
+`MS001` and `MS002` are complete. The repository now has a local-first backend foundation with raw feed loading, normalized GTFS entities, baseline relationship mapping, and CLI inspection artifacts that separate raw input state, normalized entity state, and relationship state. The remaining work is intentionally limited to `MS003`: structured validation, error surfacing, and partial-ingestion behavior.
 
 ## Context and Orientation
 
-As of 2026-03-29 after completing `MS001`, this repository contains `AGENTS.md`, `PLANS.md`, `.agent/templates/`, a Python project definition in `pyproject.toml`, implementation code under `src/gtfs_visualizer/`, fixture feeds under `sample-data/fixtures/`, and automated tests under `tests/`. There is still no UI, persistence layer, relationship engine, or validation module.
+As of 2026-03-29 after completing `MS002`, this repository contains `AGENTS.md`, `PLANS.md`, `.agent/templates/`, a Python project definition in `pyproject.toml`, implementation code under `src/gtfs_visualizer/`, fixture feeds under `sample-data/fixtures/`, and automated tests under `tests/`. There is still no UI, persistence layer, or validation module, but there is now a relationship engine under `src/gtfs_visualizer/relationships/` and a normalized model layer under `src/gtfs_visualizer/models/`.
 
 This plan uses four plain-language terms consistently. A "GTFS-static feed" means the bundle of text files such as `routes.txt`, `trips.txt`, `stops.txt`, `stop_times.txt`, `calendar.txt`, and optional files like `shapes.txt` and `calendar_dates.txt`. A "normalized model" means an internal representation that stores one source of truth per entity type with stable keys and explicit fields, rather than passing raw tables throughout the codebase. A "relationship graph" means the validated links across those normalized entities, such as which trips belong to which route and which stop times refer to which stop. A "validation report" means a structured list of issues with severity, message, entity references, and whether the feed can proceed to downstream use.
 
@@ -94,7 +101,7 @@ The work should proceed in three milestones because each milestone produces a ne
 
 The first milestone establishes the repository's execution contract. It should create the Python project skeleton in `src/`, define a single local entry point for feed ingestion, add minimal fixture feeds under `sample-data/fixtures/`, and add a test command under `tests/` that proves the repository can load a GTFS-static feed from disk. The output at the end of this milestone is not a full relationship engine. It is a reproducible developer workflow with a clear command, a clear test suite, and a clear repository structure for subsequent work.
 
-The second milestone adds the actual domain backbone. It should introduce raw feed loading modules, normalized GTFS entity models, and a relationship-linking layer. The implementation should preserve raw parsed tables separately from normalized entities so the system can trace every downstream relationship back to source data. At the end of this milestone, the project should be able to ingest a valid minimal feed and emit a baseline relationship summary that covers routes, trips, stop times, stops, calendar data, and optional shapes when present.
+The second milestone adds the actual domain backbone. It should introduce raw feed loading modules, normalized GTFS entity models, and a relationship-linking layer. The implementation should preserve raw parsed tables separately from normalized entities so the system can trace every downstream relationship back to source data. At the end of this milestone, the project should be able to ingest a valid minimal feed and emit two inspection artifacts: `normalized_entities.json` for normalized entity state and `relationships.json` for baseline relationship mappings that cover routes, trips, stop times, stops, calendar data, and optional shapes when present.
 
 The third milestone adds correctness surfacing. It should formalize validation severity levels, collect relationship problems and file-level problems into a structured report, and make the local ingestion command return clear success, warning, and failure outcomes. This milestone must also define the baseline behavior for partial ingestion so that recoverable issues are preserved and shown rather than silently ignored. No visualization UI should be implemented in this plan. UI specification work may be planned later once the ingestion and relationship contracts are stable.
 
@@ -121,9 +128,18 @@ After `MS001` and `MS002` are implemented, the repository should support a local
 The expected terminal summary should be short and human-readable, similar to:
 
     Feed loaded: sample-data\fixtures\minimal-static-feed
-    Entities: routes=1 trips=2 stop_times=6 stops=3 services=1 shapes=0
-    Validation: 0 errors, 1 warning
-    Output written to .tmp\minimal-report
+    Loaded files: routes.txt, trips.txt, stops.txt, stop_times.txt, calendar.txt, shapes.txt
+    Rows: routes=1, trips=1, stops=2, stop_times=2, calendar=1, shapes=2
+    Entities: routes=1, trips=1, stop_times=2, stops=2, services=1, shapes=1
+    Relationships: route_to_trips=1, trip_to_stop_times=2, stop_time_to_stops=2, trip_to_shapes=1, service_to_calendar=1
+    Optional missing: calendar_dates.txt
+    Output written to .tmp\minimal-report\feed_summary.json
+
+The same command should leave these inspection artifacts in the selected output directory:
+
+    feed_summary.json
+    normalized_entities.json
+    relationships.json
 
 After `MS003` is implemented, a broken fixture feed should demonstrate surfaced errors:
 
@@ -141,7 +157,7 @@ The expected terminal summary should make failure explicit, similar to:
 
 ## Validation and Acceptance
 
-Acceptance for this ExecPlan is behavior-based rather than code-structure-based. A contributor should be able to run the local ingestion command on a valid minimal GTFS-static fixture and observe all of the following: the command exits successfully, normalized entity counts are reported, the required relationship chains are linked, optional files are handled without crashes, and an output report is written to disk.
+Acceptance for this ExecPlan is behavior-based rather than code-structure-based. A contributor should be able to run the local ingestion command on a valid minimal GTFS-static fixture and observe all of the following: the command exits successfully, normalized entity counts are reported, the required relationship chains are linked, optional files are handled without crashes, and the expected inspection artifacts are written to disk.
 
 The contributor should also be able to run the same command against at least one intentionally broken fixture and observe a structured validation result that clearly identifies the broken relationship, the offending source file and record, and whether processing continued in a partial state or stopped as invalid. Automated tests in `tests/` should cover both clean and broken fixture feeds. Those tests must prove at least these cases: valid minimal feed, missing optional shapes file, orphan stop reference, inconsistent service identifier, and duplicate identifier handling.
 
@@ -159,7 +175,7 @@ The required planning artifacts for this ExecPlan live at:
 
     .agent/exec_plans/active/gtfs-foundation/EP-20260329-001_gtfs-foundation.md
     .agent/exec_plans/active/gtfs-foundation/milestones/archive/MS001_gtfs-foundation.md
-    .agent/exec_plans/active/gtfs-foundation/milestones/active/MS002_gtfs-foundation.md
+    .agent/exec_plans/active/gtfs-foundation/milestones/archive/MS002_gtfs-foundation.md
     .agent/exec_plans/active/gtfs-foundation/milestones/active/MS003_gtfs-foundation.md
 
 The fixtures that should be introduced during implementation are:
@@ -201,6 +217,12 @@ In `src/gtfs_visualizer/relationships/linker.py`, define the baseline relationsh
 
 `RelationshipGraph` must expose direct mappings for the required GTFS chains: route to trips, trip to stop times, stop time to stop, trip to shape when present, and service identifier to calendar or calendar date records.
 
+The CLI inspection artifacts should follow this split:
+
+    feed_summary.json            # unchanged raw-ingestion artifact from MS001
+    normalized_entities.json    # normalized entity counts and inspectable entity structures
+    relationships.json          # relationship mappings plus directly relevant metadata
+
 In `src/gtfs_visualizer/validation/report.py`, define the validation contract:
 
     class ValidationIssue: ...
@@ -214,3 +236,4 @@ For dependencies, use Pandas for initial table parsing because `AGENTS.md` names
 
 Change note: 2026-03-29. Created the first repository ExecPlan and initial milestone sequence manually because the `agentrules` CLI referenced by `PLANS.md` is not installed in the current environment.
 Change note: 2026-03-29. Updated the plan after completing `MS001` to reflect the repository-local virtual environment workflow, the implemented raw-feed loader and CLI, and the archived milestone state.
+Change note: 2026-03-29. Updated the plan after completing `MS002` to reflect the normalized model layer, separate relationship layer, new inspection artifact split, passing fixture-driven tests, and the archived milestone state.

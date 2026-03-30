@@ -1,0 +1,21 @@
+{
+  "source_path": "C:\\Users\\theba\\Documents\\Vibecoding projects\\gtfs-visualizer\\sample-data\\fixtures\\missing-shapes-feed",
+  "loaded_files": [
+    "routes.txt",
+    "trips.txt",
+    "stops.txt",
+    "stop_times.txt",
+    "calendar.txt"
+  ],
+  "missing_optional_files": [
+    "shapes.txt",
+    "calendar_dates.txt"
+  ],
+  "row_counts": {
+    "routes": 1,
+    "trips": 1,
+    "stops": 2,
+    "stop_times": 2,
+    "calendar": 1
+  }
+}

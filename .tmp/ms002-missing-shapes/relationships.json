@@ -1,0 +1,37 @@
+{
+  "missing_optional_files": [
+    "shapes.txt",
+    "calendar_dates.txt"
+  ],
+  "relationship_counts": {
+    "route_to_trips": 1,
+    "trip_to_stop_times": 2,
+    "stop_time_to_stops": 2,
+    "trip_to_shapes": 0,
+    "service_to_calendar": 1
+  },
+  "mappings": {
+    "route_to_trip_ids": {
+      "R1": [
+        "T1"
+      ]
+    },
+    "trip_to_route_id": {
+      "T1": "R1"
+    },
+    "trip_to_stop_time_keys": {
+      "T1": [
+        "T1:1",
+        "T1:2"
+      ]
+    },
+    "stop_time_key_to_stop_id": {
+      "T1:1": "STOP1",
+      "T1:2": "STOP2"
+    },
+    "trip_to_shape_id": {},
+    "service_id_to_calendar_id": {
+      "WKD": "WKD"
+    }
+  }
+}

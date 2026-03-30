@@ -67,12 +67,34 @@ def test_cli_ingest_writes_summary_artifact() -> None:
 
         assert result.returncode == 0
         assert "Feed loaded:" in result.stdout
+        assert "Entities: routes=1, trips=1, stop_times=2, stops=2, services=1, shapes=1" in result.stdout
+        assert (
+            "Relationships: route_to_trips=1, trip_to_stop_times=2, stop_time_to_stops=2, "
+            "trip_to_shapes=1, service_to_calendar=1"
+        ) in result.stdout
         assert "Optional missing: calendar_dates.txt" in result.stdout
 
         summary = json.loads(
             (output_dir / "feed_summary.json").read_text(encoding="utf-8")
         )
+        normalized_entities = json.loads(
+            (output_dir / "normalized_entities.json").read_text(encoding="utf-8")
+        )
+        relationships = json.loads(
+            (output_dir / "relationships.json").read_text(encoding="utf-8")
+        )
+
+        assert set(summary) == {
+            "source_path",
+            "loaded_files",
+            "missing_optional_files",
+            "row_counts",
+        }
         assert summary["loaded_files"][-1] == "shapes.txt"
         assert summary["row_counts"]["stop_times"] == 2
+        assert normalized_entities["entity_counts"]["shapes"] == 1
+        assert normalized_entities["entities"]["trips"]["T1"]["shape_id"] == "S1"
+        assert relationships["missing_optional_files"] == ["calendar_dates.txt"]
+        assert relationships["mappings"]["trip_to_shape_id"] == {"T1": "S1"}
     finally:
         shutil.rmtree(temp_root, ignore_errors=True)

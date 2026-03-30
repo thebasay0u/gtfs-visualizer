@@ -5,6 +5,11 @@ import json
 from pathlib import Path
 
 from gtfs_visualizer.ingest.feed_loader import FeedLoadError, load_feed
+from gtfs_visualizer.models.normalized import normalize_feed, serialize_normalized_feed
+from gtfs_visualizer.relationships.linker import (
+    build_relationship_graph,
+    serialize_relationship_graph,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -27,6 +32,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def run_ingest(feed_path: str, output_dir: str) -> int:
     bundle = load_feed(feed_path)
+    normalized_feed = normalize_feed(bundle)
+    relationship_graph = build_relationship_graph(normalized_feed)
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
@@ -39,6 +46,24 @@ def run_ingest(feed_path: str, output_dir: str) -> int:
     summary_path = output_path / "feed_summary.json"
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
 
+    normalized_entities_path = output_path / "normalized_entities.json"
+    normalized_entities_path.write_text(
+        json.dumps(serialize_normalized_feed(normalized_feed), indent=2),
+        encoding="utf-8",
+    )
+
+    relationships_path = output_path / "relationships.json"
+    relationships_path.write_text(
+        json.dumps(
+            serialize_relationship_graph(
+                relationship_graph,
+                missing_optional_files=bundle.missing_optional_files,
+            ),
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
     print(f"Feed loaded: {Path(feed_path)}")
     print("Loaded files: " + ", ".join(bundle.loaded_files))
     print(
@@ -46,6 +71,20 @@ def run_ingest(feed_path: str, output_dir: str) -> int:
         + ", ".join(
             f"{table_name}={row_count}"
             for table_name, row_count in summary["row_counts"].items()
+        )
+    )
+    print(
+        "Entities: "
+        + ", ".join(
+            f"{entity_name}={entity_count}"
+            for entity_name, entity_count in normalized_feed.entity_counts().items()
+        )
+    )
+    print(
+        "Relationships: "
+        + ", ".join(
+            f"{name}={count}"
+            for name, count in relationship_graph.relationship_counts().items()
         )
     )
     if bundle.missing_optional_files:
