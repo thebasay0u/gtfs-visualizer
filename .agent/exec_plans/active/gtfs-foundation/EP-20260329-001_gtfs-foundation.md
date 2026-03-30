@@ -1,12 +1,12 @@
 ---
 id: EP-20260329-001
 title: "Establish GTFS static foundation"
-status: done
+status: active
 kind: feature
 domain: cross-cutting
 owner: "@codex"
 created: 2026-03-29
-updated: 2026-03-29
+updated: 2026-03-30
 tags: [gtfs, foundation, ingestion, modeling, validation, workflow]
 touches: [api, db, cli, tests, docs, agents]
 risk: med
@@ -37,6 +37,7 @@ The first user-visible proof point is intentionally local and backend-first. A d
 - [x] (2026-03-29T23:24:43Z) Completed `MS001` by adding a repository-local Python virtual environment workflow, fixture-based GTFS-static test feeds, a single ingestion entry point, and an automated test loop that proves raw feed loading works.
 - [x] (2026-03-30T00:10:38Z) Completed `MS002` by adding normalized GTFS entity models, a separate relationship mapping layer, the `normalized_entities.json` and `relationships.json` artifacts, and fixture-driven tests that prove optional shapes do not break relationship mapping.
 - [x] (2026-03-30T04:50:08Z) Completed `MS003` by adding a dedicated validation layer, fixed v1 validation codes, `validation_report.json`, explicit partial-ingestion reporting, fatal artifact suppression for normalized and relationship outputs, and fixture-driven tests for valid, warning-only, invalid, duplicate-id, and unknown-shape scenarios.
+- [x] (2026-03-30T19:00:00Z) Defined `MS004` to add an artifact-backed query layer for route, trip, and stop exploration on top of valid or warning-only ingest outputs, with fixed JSON response shapes and explicit artifact-versus-lookup failure contracts.
 
 ## Surprises & Discoveries
 
@@ -96,9 +97,19 @@ The first user-visible proof point is intentionally local and backend-first. A d
   Rationale: This keeps row references human-readable and consistent across normalized entities, relationship-derived findings, duplicate detection, and missing-file warnings.
   Date/Author: 2026-03-29 / @codex
 
+- Decision: Sequence consumer-facing work by adding an artifact-backed query layer before visualization data preparation.
+  Rationale: The repository is still CLI-first and file-based with no UI framework or persistence, so a stable read-only query contract is the lowest-risk interface for later visualization work.
+  Date/Author: 2026-03-30 / @codex
+
+- Decision: Keep MS004 artifact validation minimal and strict by checking only required keys and container shapes, ignoring unknown extra keys, and separating invalid artifact failures from unknown entity lookups.
+  Rationale: This preserves forward compatibility for artifact evolution while keeping query failures deterministic and easy to diagnose from the CLI and tests.
+  Date/Author: 2026-03-30 / @codex
+
 ## Outcomes & Retrospective
 
-This ExecPlan is complete. The repository now has a local-first GTFS-static foundation with raw feed loading, normalized GTFS entities, baseline relationship mapping, structured validation findings, fixed severity codes, and explicit partial-ingestion behavior. A valid feed writes all four artifacts, a warning-only feed preserves successful ingestion with surfaced warnings, and an invalid feed exits non-zero while writing only the raw summary and validation report. The main lesson from the foundation phase is that raw loading, normalization, relationship mapping, and validation each needed a distinct module boundary to keep later work explainable and testable.
+The foundation milestones `MS001` through `MS003` are complete. The repository now has a local-first GTFS-static foundation with raw feed loading, normalized GTFS entities, baseline relationship mapping, structured validation findings, fixed severity codes, and explicit partial-ingestion behavior. A valid feed writes all four artifacts, a warning-only feed preserves successful ingestion with surfaced warnings, and an invalid feed exits non-zero while writing only the raw summary and validation report.
+
+`MS004` extends that foundation with the first consumer-facing interface above the validated artifacts: a read-only query layer for route, trip, and stop exploration. The main lesson carried forward is unchanged: raw loading, normalization, relationship mapping, validation, and consumer-facing query access each need their own module boundary so future visualization work stays explainable and testable.
 
 ## Context and Orientation
 
@@ -112,13 +123,15 @@ Future contributors should assume that `sample-data/` will hold small, purpose-b
 
 ## Plan of Work
 
-The work should proceed in three milestones because each milestone produces a new observable capability while minimizing cross-dependencies.
+The work now proceeds in four milestones because each milestone produces a new observable capability while minimizing cross-dependencies.
 
 The first milestone establishes the repository's execution contract. It should create the Python project skeleton in `src/`, define a single local entry point for feed ingestion, add minimal fixture feeds under `sample-data/fixtures/`, and add a test command under `tests/` that proves the repository can load a GTFS-static feed from disk. The output at the end of this milestone is not a full relationship engine. It is a reproducible developer workflow with a clear command, a clear test suite, and a clear repository structure for subsequent work.
 
 The second milestone adds the actual domain backbone. It should introduce raw feed loading modules, normalized GTFS entity models, and a relationship-linking layer. The implementation should preserve raw parsed tables separately from normalized entities so the system can trace every downstream relationship back to source data. At the end of this milestone, the project should be able to ingest a valid minimal feed and emit two inspection artifacts: `normalized_entities.json` for normalized entity state and `relationships.json` for baseline relationship mappings that cover routes, trips, stop times, stops, calendar data, and optional shapes when present.
 
 The third milestone adds correctness surfacing. It should formalize validation severity levels, collect relationship problems and file-level problems into a structured report, and make the local ingestion command return clear success, warning, and failure outcomes. This milestone must also define the baseline behavior for partial ingestion so that recoverable issues are preserved and shown rather than silently ignored. No visualization UI should be implemented in this plan. UI specification work may be planned later once the ingestion and relationship contracts are stable.
+
+The fourth milestone adds consumer-facing exploration without introducing a UI framework. It should load valid or warning-only artifact bundles, validate only the minimum required artifact structure, and expose a read-only query interface for routes, route detail, trip detail, and stop detail. Query failures must distinguish invalid or malformed artifact bundles from unknown route, trip, or stop identifiers. The response shapes should be fixed at the top level so later consumers can depend on them.
 
 ## Concrete Steps
 
@@ -264,3 +277,4 @@ Change note: 2026-03-29. Created the first repository ExecPlan and initial miles
 Change note: 2026-03-29. Updated the plan after completing `MS001` to reflect the repository-local virtual environment workflow, the implemented raw-feed loader and CLI, and the archived milestone state.
 Change note: 2026-03-29. Updated the plan after completing `MS002` to reflect the normalized model layer, separate relationship layer, new inspection artifact split, passing fixture-driven tests, and the archived milestone state.
 Change note: 2026-03-29. Updated the plan after completing `MS003` to reflect the fixed validation-code contract, validation artifact shape, partial raw-only ingestion policy, clean/warning/invalid fixture coverage, and the archived milestone state.
+Change note: 2026-03-30. Extended the plan with `MS004` for artifact-backed route, trip, and stop queries with fixed JSON response shapes, minimal artifact validation, and explicit artifact-versus-lookup error handling.

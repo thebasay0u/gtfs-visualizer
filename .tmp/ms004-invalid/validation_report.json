@@ -1,0 +1,110 @@
+{
+  "status": "invalid",
+  "summary": {
+    "error_count": 4,
+    "warning_count": 3
+  },
+  "partial_ingestion": {
+    "state": "raw_only",
+    "reason": "fatal_validation_findings",
+    "written_artifacts": [
+      "feed_summary.json",
+      "validation_report.json"
+    ],
+    "suppressed_artifacts": [
+      "normalized_entities.json",
+      "relationships.json"
+    ]
+  },
+  "missing_optional_files": [
+    "shapes.txt",
+    "calendar_dates.txt"
+  ],
+  "findings": [
+    {
+      "severity": "error",
+      "code": "UNKNOWN_STOP_ID",
+      "message": "Stop time T1:1 references unknown stop_id STOP_MISSING",
+      "entity_type": "stop_time",
+      "entity_id": "T1:1",
+      "source_file": "stop_times.txt",
+      "source_row": 1,
+      "related": {
+        "field": "stop_id",
+        "value": "STOP_MISSING"
+      }
+    },
+    {
+      "severity": "error",
+      "code": "UNKNOWN_TRIP_ID",
+      "message": "Stop time T_UNKNOWN:2 references unknown trip_id T_UNKNOWN",
+      "entity_type": "stop_time",
+      "entity_id": "T_UNKNOWN:2",
+      "source_file": "stop_times.txt",
+      "source_row": 2,
+      "related": {
+        "field": "trip_id",
+        "value": "T_UNKNOWN"
+      }
+    },
+    {
+      "severity": "error",
+      "code": "UNKNOWN_ROUTE_ID",
+      "message": "Trip T1 references unknown route_id R_UNKNOWN",
+      "entity_type": "trip",
+      "entity_id": "T1",
+      "source_file": "trips.txt",
+      "source_row": 1,
+      "related": {
+        "field": "route_id",
+        "value": "R_UNKNOWN"
+      }
+    },
+    {
+      "severity": "error",
+      "code": "UNKNOWN_SERVICE_ID",
+      "message": "Trip T1 references unknown service_id WKD_UNKNOWN",
+      "entity_type": "trip",
+      "entity_id": "T1",
+      "source_file": "trips.txt",
+      "source_row": 1,
+      "related": {
+        "field": "service_id",
+        "value": "WKD_UNKNOWN"
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "MISSING_OPTIONAL_CALENDAR_DATES_FILE",
+      "message": "Optional GTFS file calendar_dates.txt is missing",
+      "entity_type": "feed",
+      "entity_id": "",
+      "source_file": "calendar_dates.txt",
+      "source_row": 0,
+      "related": {}
+    },
+    {
+      "severity": "warning",
+      "code": "MISSING_OPTIONAL_SHAPES_FILE",
+      "message": "Optional GTFS file shapes.txt is missing",
+      "entity_type": "feed",
+      "entity_id": "",
+      "source_file": "shapes.txt",
+      "source_row": 0,
+      "related": {}
+    },
+    {
+      "severity": "warning",
+      "code": "SHAPE_ID_WITHOUT_SHAPES_FILE",
+      "message": "Trip T1 declares shape_id S1 but shapes.txt is missing",
+      "entity_type": "trip",
+      "entity_id": "T1",
+      "source_file": "trips.txt",
+      "source_row": 1,
+      "related": {
+        "field": "shape_id",
+        "value": "S1"
+      }
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "generated_from": {
+    "normalized_entities": "normalized_entities.json",
+    "relationships": "relationships.json"
+  },
+  "edges": [
+    {
+      "id": "route_has_trip:route:R1:trip:T1",
+      "type": "route_has_trip",
+      "source": "route:R1",
+      "target": "trip:T1",
+      "attributes": {
+        "route_id": "R1",
+        "trip_id": "T1"
+      }
+    },
+    {
+      "id": "trip_stops_at:trip:T1:stop:STOP1:1",
+      "type": "trip_stops_at",
+      "source": "trip:T1",
+      "target": "stop:STOP1",
+      "attributes": {
+        "trip_id": "T1",
+        "stop_id": "STOP1",
+        "stop_sequence": 1
+      }
+    },
+    {
+      "id": "trip_stops_at:trip:T1:stop:STOP2:2",
+      "type": "trip_stops_at",
+      "source": "trip:T1",
+      "target": "stop:STOP2",
+      "attributes": {
+        "trip_id": "T1",
+        "stop_id": "STOP2",
+        "stop_sequence": 2
+      }
+    }
+  ]
+}

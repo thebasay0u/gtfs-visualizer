@@ -3,9 +3,17 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import sys
 
 from gtfs_visualizer.ingest.feed_loader import FeedLoadError, load_feed
+from gtfs_visualizer.graph import build_graph_artifacts, serialize_graph_edges, serialize_graph_nodes
 from gtfs_visualizer.models.normalized import normalize_feed, serialize_normalized_feed
+from gtfs_visualizer.query import (
+    QueryArtifactError,
+    QueryLookupError,
+    QueryService,
+    load_query_bundle,
+)
 from gtfs_visualizer.relationships.linker import (
     build_relationship_graph,
     serialize_relationship_graph,
@@ -26,6 +34,33 @@ def build_parser() -> argparse.ArgumentParser:
         "--output-dir",
         required=True,
         help="Directory where ingestion artifacts will be written.",
+    )
+
+    query_parser = subparsers.add_parser(
+        "query",
+        help="Query previously generated GTFS artifact bundles.",
+    )
+    query_parser.add_argument("artifacts_dir", help="Directory containing queryable artifacts.")
+    query_subparsers = query_parser.add_subparsers(dest="query_command", required=True)
+    query_subparsers.add_parser("routes", help="List all routes with trip counts.")
+
+    route_parser = query_subparsers.add_parser("route", help="Show route detail.")
+    route_parser.add_argument("route_id", help="Route identifier.")
+
+    trip_parser = query_subparsers.add_parser("trip", help="Show trip detail.")
+    trip_parser.add_argument("trip_id", help="Trip identifier.")
+
+    stop_parser = query_subparsers.add_parser("stop", help="Show stop detail.")
+    stop_parser.add_argument("stop_id", help="Stop identifier.")
+
+    graph_parser = subparsers.add_parser(
+        "graph",
+        help="Generate graph-ready artifacts from a validated artifact bundle.",
+    )
+    graph_parser.add_argument("artifacts_dir", help="Directory containing queryable artifacts.")
+    graph_parser.add_argument(
+        "--output-dir",
+        help="Directory where graph artifacts will be written. Defaults to the artifacts directory.",
     )
 
     return parser
@@ -112,6 +147,48 @@ def run_ingest(feed_path: str, output_dir: str) -> int:
     return 1 if validation_report.status == "invalid" else 0
 
 
+def run_query(artifacts_dir: str, query_command: str, identifier: str | None = None) -> int:
+    bundle = load_query_bundle(Path(artifacts_dir))
+    service = QueryService(bundle)
+
+    if query_command == "routes":
+        payload = service.list_routes()
+    elif query_command == "route":
+        if identifier is None:
+            raise QueryArtifactError("Missing required route identifier")
+        payload = service.get_route_detail(identifier)
+    elif query_command == "trip":
+        if identifier is None:
+            raise QueryArtifactError("Missing required trip identifier")
+        payload = service.get_trip_detail(identifier)
+    elif query_command == "stop":
+        if identifier is None:
+            raise QueryArtifactError("Missing required stop identifier")
+        payload = service.get_stop_detail(identifier)
+    else:
+        raise QueryArtifactError(f"Unsupported query command: {query_command}")
+
+    print(json.dumps(payload, indent=2))
+    return 0
+
+
+def run_graph(artifacts_dir: str, output_dir: str | None = None) -> int:
+    bundle = load_query_bundle(Path(artifacts_dir))
+    graph = build_graph_artifacts(bundle)
+
+    destination = Path(output_dir) if output_dir is not None else Path(artifacts_dir)
+    destination.mkdir(parents=True, exist_ok=True)
+
+    nodes_path = destination / "graph_nodes.json"
+    nodes_path.write_text(json.dumps(serialize_graph_nodes(graph), indent=2), encoding="utf-8")
+
+    edges_path = destination / "graph_edges.json"
+    edges_path.write_text(json.dumps(serialize_graph_edges(graph), indent=2), encoding="utf-8")
+
+    print(f"Graph artifacts written: {nodes_path}, {edges_path}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -119,8 +196,22 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if args.command == "ingest":
             return run_ingest(args.feed_path, args.output_dir)
+        if args.command == "query":
+            identifier = None
+            if args.query_command == "route":
+                identifier = args.route_id
+            elif args.query_command == "trip":
+                identifier = args.trip_id
+            elif args.query_command == "stop":
+                identifier = args.stop_id
+            return run_query(args.artifacts_dir, args.query_command, identifier)
+        if args.command == "graph":
+            return run_graph(args.artifacts_dir, args.output_dir)
     except FeedLoadError as exc:
         print(f"Error: {exc}")
+        return 1
+    except (QueryArtifactError, QueryLookupError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
         return 1
 
     parser.error(f"Unsupported command: {args.command}")

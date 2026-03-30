@@ -1,0 +1,20 @@
+{
+  "status": "valid",
+  "summary": {
+    "error_count": 0,
+    "warning_count": 0
+  },
+  "partial_ingestion": {
+    "state": "none",
+    "reason": null,
+    "written_artifacts": [
+      "feed_summary.json",
+      "normalized_entities.json",
+      "relationships.json",
+      "validation_report.json"
+    ],
+    "suppressed_artifacts": []
+  },
+  "missing_optional_files": [],
+  "findings": []
+}

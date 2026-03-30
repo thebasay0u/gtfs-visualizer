@@ -1,16 +1,16 @@
 {
-  "generated_at": "2026-03-30T04:50:08Z",
+  "generated_at": "2026-03-30T19:00:00Z",
   "plans": [
     {
       "id": "EP-20260329-001",
       "slug": "gtfs-foundation",
       "title": "Establish GTFS static foundation",
-      "status": "done",
+      "status": "active",
       "kind": "feature",
       "domain": "cross-cutting",
       "owner": "@codex",
       "created": "2026-03-29",
-      "updated": "2026-03-29",
+      "updated": "2026-03-30",
       "tags": [
         "gtfs",
         "foundation",
@@ -59,6 +59,13 @@
           "title": "Surface validation outcomes and partial-ingestion behavior",
           "status": "done",
           "path": ".agent/exec_plans/active/gtfs-foundation/milestones/archive/MS003_gtfs-foundation.md"
+        },
+        {
+          "id": "EP-20260329-001/MS004",
+          "ms": 4,
+          "title": "Add artifact-backed relationship query layer",
+          "status": "planned",
+          "path": ".agent/exec_plans/active/gtfs-foundation/milestones/active/MS004_gtfs-foundation.md"
         }
       ]
     }
