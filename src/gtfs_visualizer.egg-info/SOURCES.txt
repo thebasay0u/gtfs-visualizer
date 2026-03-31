@@ -7,6 +7,12 @@ src/gtfs_visualizer.egg-info/SOURCES.txt
 src/gtfs_visualizer.egg-info/dependency_links.txt
 src/gtfs_visualizer.egg-info/requires.txt
 src/gtfs_visualizer.egg-info/top_level.txt
+src/gtfs_visualizer/artifacts/__init__.py
+src/gtfs_visualizer/artifacts/validated.py
+src/gtfs_visualizer/graph/__init__.py
+src/gtfs_visualizer/graph/artifacts.py
+src/gtfs_visualizer/graph/builder.py
+src/gtfs_visualizer/graph/service.py
 src/gtfs_visualizer/ingest/__init__.py
 src/gtfs_visualizer/ingest/feed_loader.py
 src/gtfs_visualizer/models/__init__.py
@@ -19,6 +25,8 @@ src/gtfs_visualizer/relationships/linker.py
 src/gtfs_visualizer/validation/__init__.py
 src/gtfs_visualizer/validation/report.py
 tests/test_feed_loader.py
+tests/test_graph.py
+tests/test_graph_read.py
 tests/test_query.py
 tests/test_relationships.py
 tests/test_validation.py

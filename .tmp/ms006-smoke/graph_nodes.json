@@ -1,0 +1,57 @@
+{
+  "version": 1,
+  "generated_from": {
+    "normalized_entities": "normalized_entities.json",
+    "relationships": "relationships.json"
+  },
+  "nodes": [
+    {
+      "id": "route:R1",
+      "type": "route",
+      "entity_id": "R1",
+      "label": "Route 10",
+      "attributes": {
+        "route_id": "R1",
+        "route_short_name": "10",
+        "route_long_name": "Downtown Loop",
+        "route_type": 3
+      }
+    },
+    {
+      "id": "stop:STOP1",
+      "type": "stop",
+      "entity_id": "STOP1",
+      "label": "First Stop",
+      "attributes": {
+        "stop_id": "STOP1",
+        "stop_name": "First Stop",
+        "stop_lat": "47.6000",
+        "stop_lon": "-122.3300"
+      }
+    },
+    {
+      "id": "stop:STOP2",
+      "type": "stop",
+      "entity_id": "STOP2",
+      "label": "Second Stop",
+      "attributes": {
+        "stop_id": "STOP2",
+        "stop_name": "Second Stop",
+        "stop_lat": "47.6100",
+        "stop_lon": "-122.3400"
+      }
+    },
+    {
+      "id": "trip:T1",
+      "type": "trip",
+      "entity_id": "T1",
+      "label": "Trip T1",
+      "attributes": {
+        "trip_id": "T1",
+        "route_id": "R1",
+        "service_id": "WKD",
+        "shape_id": "S1"
+      }
+    }
+  ]
+}

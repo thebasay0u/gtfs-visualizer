@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-03-30T19:00:00Z",
+  "generated_at": "2026-03-30T22:10:00Z",
   "plans": [
     {
       "id": "EP-20260329-001",
@@ -64,8 +64,22 @@
           "id": "EP-20260329-001/MS004",
           "ms": 4,
           "title": "Add artifact-backed relationship query layer",
-          "status": "planned",
-          "path": ".agent/exec_plans/active/gtfs-foundation/milestones/active/MS004_gtfs-foundation.md"
+          "status": "done",
+          "path": ".agent/exec_plans/active/gtfs-foundation/milestones/archive/MS004_gtfs-foundation.md"
+        },
+        {
+          "id": "EP-20260329-001/MS005",
+          "ms": 5,
+          "title": "Add graph-ready visualization prep artifacts",
+          "status": "done",
+          "path": ".agent/exec_plans/active/gtfs-foundation/milestones/archive/MS005_gtfs-foundation.md"
+        },
+        {
+          "id": "EP-20260329-001/MS006",
+          "ms": 6,
+          "title": "Add graph-native read and traversal commands",
+          "status": "done",
+          "path": ".agent/exec_plans/active/gtfs-foundation/milestones/archive/MS006_gtfs-foundation.md"
         }
       ]
     }

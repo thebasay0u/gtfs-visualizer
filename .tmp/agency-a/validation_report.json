@@ -1,0 +1,33 @@
+{
+  "status": "valid_with_warnings",
+  "summary": {
+    "error_count": 0,
+    "warning_count": 1
+  },
+  "partial_ingestion": {
+    "state": "none",
+    "reason": null,
+    "written_artifacts": [
+      "feed_summary.json",
+      "normalized_entities.json",
+      "relationships.json",
+      "validation_report.json"
+    ],
+    "suppressed_artifacts": []
+  },
+  "missing_optional_files": [
+    "calendar_dates.txt"
+  ],
+  "findings": [
+    {
+      "severity": "warning",
+      "code": "MISSING_OPTIONAL_CALENDAR_DATES_FILE",
+      "message": "Optional GTFS file calendar_dates.txt is missing",
+      "entity_type": "feed",
+      "entity_id": "",
+      "source_file": "calendar_dates.txt",
+      "source_row": 0,
+      "related": {}
+    }
+  ]
+}

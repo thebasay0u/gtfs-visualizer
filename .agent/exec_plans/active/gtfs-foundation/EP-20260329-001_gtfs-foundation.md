@@ -38,6 +38,11 @@ The first user-visible proof point is intentionally local and backend-first. A d
 - [x] (2026-03-30T00:10:38Z) Completed `MS002` by adding normalized GTFS entity models, a separate relationship mapping layer, the `normalized_entities.json` and `relationships.json` artifacts, and fixture-driven tests that prove optional shapes do not break relationship mapping.
 - [x] (2026-03-30T04:50:08Z) Completed `MS003` by adding a dedicated validation layer, fixed v1 validation codes, `validation_report.json`, explicit partial-ingestion reporting, fatal artifact suppression for normalized and relationship outputs, and fixture-driven tests for valid, warning-only, invalid, duplicate-id, and unknown-shape scenarios.
 - [x] (2026-03-30T19:00:00Z) Defined `MS004` to add an artifact-backed query layer for route, trip, and stop exploration on top of valid or warning-only ingest outputs, with fixed JSON response shapes and explicit artifact-versus-lookup failure contracts.
+- [x] (2026-03-30T20:30:00Z) Reconciled planning artifacts with the implemented repository state by archiving completed `MS004`, recording completed `MS005`, and creating active `MS006` before starting graph-read implementation.
+- [x] (2026-03-30T20:45:00Z) Completed `MS004` by adding artifact-backed query loading, `QueryService`, `query` CLI commands for routes, route detail, trip detail, and stop detail, and regression coverage for valid, warning-only, invalid, malformed, and lookup cases.
+- [x] (2026-03-30T21:05:00Z) Completed `MS005` by adding shared validated artifact loading, graph artifact generation, the `graph` CLI command, and deterministic `graph_nodes.json` and `graph_edges.json` outputs with compatibility tests proving existing query behavior was unchanged.
+- [x] (2026-03-30T22:05:00Z) Completed `MS006` by adding graph artifact loading, `GraphService`, `graph-read` CLI commands for nodes, node, edges, edge, and neighbors, and tests covering graph read validation, lookup, adjacency, CLI filters, and stderr failure behavior.
+- [x] (2026-03-30T22:10:00Z) Archived `MS006`, updated the ExecPlan living sections, and updated `registry.json` so the planning metadata matches the implemented repository state.
 
 ## Surprises & Discoveries
 
@@ -58,6 +63,12 @@ The first user-visible proof point is intentionally local and backend-first. A d
 
 - Observation: The original minimal fixture could not satisfy the planned clean-path validation contract because it was missing `calendar_dates.txt`, which MS003 treats as an explicit warning code.
   Evidence: Before adding `sample-data/fixtures/minimal-static-feed/calendar_dates.txt`, validating the minimal fixture produced `MISSING_OPTIONAL_CALENDAR_DATES_FILE` and `valid_with_warnings` instead of `valid`.
+
+- Observation: The planning artifacts fell behind the implemented repository after MS004 and MS005, leaving an active milestone that was already complete and no milestone document for the implemented graph-generation work.
+  Evidence: Before MS006 work, `registry.json` still listed `MS004` as planned, the active milestones directory contained only `MS004_gtfs-foundation.md`, and the repo already contained `src/gtfs_visualizer/graph/` plus `tests/test_graph.py`.
+
+- Observation: The graph-read CLI can stay strictly read-only without extra recovery logic because missing `graph_nodes.json` and `graph_edges.json` already produce a clear artifact error at the loader boundary.
+  Evidence: `tests/test_graph_read.py::test_load_graph_bundle_rejects_missing_graph_artifacts_without_recovery` and `tests/test_graph_read.py::test_cli_graph_read_failures_print_to_stderr_and_do_not_generate_artifacts` both pass with explicit missing-file errors and no artifact regeneration.
 
 ## Decision Log
 
@@ -105,11 +116,35 @@ The first user-visible proof point is intentionally local and backend-first. A d
   Rationale: This preserves forward compatibility for artifact evolution while keeping query failures deterministic and easy to diagnose from the CLI and tests.
   Date/Author: 2026-03-30 / @codex
 
+- Decision: Extract neutral validated-artifact loading so graph generation can share gating logic without depending on query service behavior.
+  Rationale: This kept MS005 aligned with the layer-separation rule while reusing the valid-or-warning-only artifact contract.
+  Date/Author: 2026-03-30 / @codex
+
+- Decision: Treat planning artifact reconciliation as a required part of milestone delivery rather than follow-up documentation.
+  Rationale: The amended MS006 requirements explicitly require the ExecPlan, milestone archive state, and registry to reflect actual repo state before implementation begins and after it ends.
+  Date/Author: 2026-03-30 / @codex
+
+- Decision: Keep MS006 graph reads strictly read-only and separate from both graph generation and `QueryService`.
+  Rationale: Graph-native access should consume only `graph_nodes.json` and `graph_edges.json`, fail on missing graph artifacts, and avoid cross-layer fallback behavior.
+  Date/Author: 2026-03-30 / @codex
+
+- Decision: Keep `GraphLookupError` limited to unknown `node_id` and unknown `edge_id`, while leaving filter validation entirely to argparse.
+  Rationale: This preserves the amended CLI-service boundary: the CLI validates allowed filter values, while `GraphService` focuses only on data lookup and traversal.
+  Date/Author: 2026-03-30 / @codex
+
+- Decision: Make neighbor outputs deduplicate nodes by `node_id` but return the full filtered edge set in deterministic order.
+  Rationale: Future traversal and visualization consumers need stable neighbor lists without losing the exact edge set that produced those neighbors.
+  Date/Author: 2026-03-30 / @codex
+
 ## Outcomes & Retrospective
 
 The foundation milestones `MS001` through `MS003` are complete. The repository now has a local-first GTFS-static foundation with raw feed loading, normalized GTFS entities, baseline relationship mapping, structured validation findings, fixed severity codes, and explicit partial-ingestion behavior. A valid feed writes all four artifacts, a warning-only feed preserves successful ingestion with surfaced warnings, and an invalid feed exits non-zero while writing only the raw summary and validation report.
 
 `MS004` extends that foundation with the first consumer-facing interface above the validated artifacts: a read-only query layer for route, trip, and stop exploration. The main lesson carried forward is unchanged: raw loading, normalization, relationship mapping, validation, and consumer-facing query access each need their own module boundary so future visualization work stays explainable and testable.
+
+`MS005` then added the first visualization-prep outputs: deterministic graph nodes and edges derived from validated artifacts, again without changing ingest or query behavior. `MS006` is the next logical layer on top of that work: graph-native read access and traversal over generated graph artifacts.
+
+`MS006` is now complete. The repository can read generated graph artifacts directly, validate their structure, inspect nodes and edges, and traverse neighbors through deterministic read-only CLI commands. The main lesson from this milestone is that graph generation and graph reading needed separate module boundaries just as clearly as query and validation did.
 
 ## Context and Orientation
 
@@ -123,7 +158,7 @@ Future contributors should assume that `sample-data/` will hold small, purpose-b
 
 ## Plan of Work
 
-The work now proceeds in four milestones because each milestone produces a new observable capability while minimizing cross-dependencies.
+The work now proceeds in six milestones because each milestone produces a new observable capability while minimizing cross-dependencies.
 
 The first milestone establishes the repository's execution contract. It should create the Python project skeleton in `src/`, define a single local entry point for feed ingestion, add minimal fixture feeds under `sample-data/fixtures/`, and add a test command under `tests/` that proves the repository can load a GTFS-static feed from disk. The output at the end of this milestone is not a full relationship engine. It is a reproducible developer workflow with a clear command, a clear test suite, and a clear repository structure for subsequent work.
 
@@ -132,6 +167,10 @@ The second milestone adds the actual domain backbone. It should introduce raw fe
 The third milestone adds correctness surfacing. It should formalize validation severity levels, collect relationship problems and file-level problems into a structured report, and make the local ingestion command return clear success, warning, and failure outcomes. This milestone must also define the baseline behavior for partial ingestion so that recoverable issues are preserved and shown rather than silently ignored. No visualization UI should be implemented in this plan. UI specification work may be planned later once the ingestion and relationship contracts are stable.
 
 The fourth milestone adds consumer-facing exploration without introducing a UI framework. It should load valid or warning-only artifact bundles, validate only the minimum required artifact structure, and expose a read-only query interface for routes, route detail, trip detail, and stop detail. Query failures must distinguish invalid or malformed artifact bundles from unknown route, trip, or stop identifiers. The response shapes should be fixed at the top level so later consumers can depend on them.
+
+The fifth milestone adds visualization-prep artifacts without introducing a UI. It should transform validated artifacts into deterministic route, trip, and stop nodes plus route-to-trip and trip-to-stop edges, then write `graph_nodes.json` and `graph_edges.json`. Graph generation must remain additive, deterministic, and compatible with existing query behavior.
+
+The sixth milestone adds graph-native inspection. It should load graph artifacts directly, validate their structure, and expose read-only node lookup, edge lookup, filtering, and adjacency traversal through dedicated CLI commands. This milestone must not regenerate graph artifacts, must not depend on `QueryService`, and must keep graph artifact failures separate from lookup failures.
 
 ## Concrete Steps
 
@@ -169,6 +208,8 @@ The same command should leave these inspection artifacts in the selected output 
     feed_summary.json
     normalized_entities.json
     relationships.json
+    graph_nodes.json
+    graph_edges.json
 
 After `MS003` is implemented, a broken fixture feed should demonstrate surfaced errors:
 
@@ -194,7 +235,7 @@ Acceptance for this ExecPlan is behavior-based rather than code-structure-based.
 
 The contributor should also be able to run the same command against a warning-only fixture and an intentionally broken fixture and observe a structured validation result that clearly identifies the finding code, severity, source file, source row, and whether processing continued in a partial state or stopped as invalid. Automated tests in `tests/` should cover clean, warning-only, and invalid feeds. Those tests must prove at least these cases: valid minimal feed, missing optional shapes file, orphan stop reference, unknown trip reference, inconsistent service identifier, duplicate identifier handling, and unknown shape handling.
 
-This plan is complete when three conditions are all true. First, after activating the repository virtual environment, `python -m pytest tests` passes from the repository root. Second, the local ingestion command produces the expected valid, warning-only, and invalid summaries with fixture feeds and the correct artifact suppression behavior on fatal findings. Third, the resulting implementation keeps parsing logic, relationship mapping logic, validation logic, and any future visualization-facing interfaces in separate modules so later UI work does not depend directly on raw feed parsing.
+This plan is complete when four conditions are all true. First, after activating the repository virtual environment, `python -m pytest tests` passes from the repository root. Second, the local ingestion command produces the expected valid, warning-only, and invalid summaries with fixture feeds and the correct artifact suppression behavior on fatal findings. Third, downstream query, graph-generation, and graph-read commands behave deterministically on valid and warning-only artifact sets while failing clearly on invalid or missing artifacts. Fourth, the resulting implementation keeps parsing logic, relationship mapping logic, validation logic, query logic, graph-generation logic, and graph-read logic in separate modules so later visualization work does not depend directly on raw feed parsing.
 
 ## Idempotence and Recovery
 
@@ -210,6 +251,9 @@ The required planning artifacts for this ExecPlan live at:
     .agent/exec_plans/active/gtfs-foundation/milestones/archive/MS001_gtfs-foundation.md
     .agent/exec_plans/active/gtfs-foundation/milestones/archive/MS002_gtfs-foundation.md
     .agent/exec_plans/active/gtfs-foundation/milestones/archive/MS003_gtfs-foundation.md
+    .agent/exec_plans/active/gtfs-foundation/milestones/archive/MS004_gtfs-foundation.md
+    .agent/exec_plans/active/gtfs-foundation/milestones/archive/MS005_gtfs-foundation.md
+    .agent/exec_plans/active/gtfs-foundation/milestones/active/MS006_gtfs-foundation.md
 
 The fixtures that should be introduced during implementation are:
 
@@ -278,3 +322,5 @@ Change note: 2026-03-29. Updated the plan after completing `MS001` to reflect th
 Change note: 2026-03-29. Updated the plan after completing `MS002` to reflect the normalized model layer, separate relationship layer, new inspection artifact split, passing fixture-driven tests, and the archived milestone state.
 Change note: 2026-03-29. Updated the plan after completing `MS003` to reflect the fixed validation-code contract, validation artifact shape, partial raw-only ingestion policy, clean/warning/invalid fixture coverage, and the archived milestone state.
 Change note: 2026-03-30. Extended the plan with `MS004` for artifact-backed route, trip, and stop queries with fixed JSON response shapes, minimal artifact validation, and explicit artifact-versus-lookup error handling.
+Change note: 2026-03-30. Reconciled the living plan with the actual repo by recording completed `MS004` and `MS005`, archiving their milestone documents, and activating `MS006` before graph-read implementation.
+Change note: 2026-03-30. Updated the plan after completing `MS006` to reflect graph artifact loading, graph-native traversal, strict read-only graph inspection commands, and the archived milestone state.

@@ -6,7 +6,15 @@ from pathlib import Path
 import sys
 
 from gtfs_visualizer.ingest.feed_loader import FeedLoadError, load_feed
-from gtfs_visualizer.graph import build_graph_artifacts, serialize_graph_edges, serialize_graph_nodes
+from gtfs_visualizer.graph import (
+    GraphArtifactError,
+    GraphLookupError,
+    GraphService,
+    build_graph_artifacts,
+    load_graph_bundle,
+    serialize_graph_edges,
+    serialize_graph_nodes,
+)
 from gtfs_visualizer.models.normalized import normalize_feed, serialize_normalized_feed
 from gtfs_visualizer.query import (
     QueryArtifactError,
@@ -61,6 +69,45 @@ def build_parser() -> argparse.ArgumentParser:
     graph_parser.add_argument(
         "--output-dir",
         help="Directory where graph artifacts will be written. Defaults to the artifacts directory.",
+    )
+
+    graph_read_parser = subparsers.add_parser(
+        "graph-read",
+        help="Inspect previously generated graph artifacts.",
+    )
+    graph_read_parser.add_argument("artifacts_dir", help="Directory containing graph artifacts.")
+    graph_read_subparsers = graph_read_parser.add_subparsers(
+        dest="graph_read_command",
+        required=True,
+    )
+
+    graph_read_nodes = graph_read_subparsers.add_parser("nodes", help="List graph nodes.")
+    graph_read_nodes.add_argument("--type", choices=["route", "trip", "stop"])
+
+    graph_read_node = graph_read_subparsers.add_parser("node", help="Show one graph node.")
+    graph_read_node.add_argument("node_id")
+
+    graph_read_edges = graph_read_subparsers.add_parser("edges", help="List graph edges.")
+    graph_read_edges.add_argument("--type", choices=["route_has_trip", "trip_stops_at"])
+    graph_read_edges.add_argument("--source")
+    graph_read_edges.add_argument("--target")
+
+    graph_read_edge = graph_read_subparsers.add_parser("edge", help="Show one graph edge.")
+    graph_read_edge.add_argument("edge_id")
+
+    graph_read_neighbors = graph_read_subparsers.add_parser(
+        "neighbors",
+        help="Show neighbor nodes and matching edges for a graph node.",
+    )
+    graph_read_neighbors.add_argument("node_id")
+    graph_read_neighbors.add_argument(
+        "--direction",
+        choices=["in", "out", "both"],
+        default="both",
+    )
+    graph_read_neighbors.add_argument(
+        "--edge-type",
+        choices=["route_has_trip", "trip_stops_at"],
     )
 
     return parser
@@ -189,6 +236,44 @@ def run_graph(artifacts_dir: str, output_dir: str | None = None) -> int:
     return 0
 
 
+def run_graph_read(
+    artifacts_dir: str,
+    command: str,
+    *,
+    node_id: str | None = None,
+    edge_id: str | None = None,
+    node_type: str | None = None,
+    edge_type: str | None = None,
+    source: str | None = None,
+    target: str | None = None,
+    direction: str = "both",
+) -> int:
+    bundle = load_graph_bundle(Path(artifacts_dir))
+    service = GraphService(bundle)
+
+    if command == "nodes":
+        payload = service.list_nodes(node_type=node_type)
+    elif command == "node":
+        if node_id is None:
+            raise GraphArtifactError("Missing required node identifier")
+        payload = service.get_node(node_id)
+    elif command == "edges":
+        payload = service.list_edges(edge_type=edge_type, source=source, target=target)
+    elif command == "edge":
+        if edge_id is None:
+            raise GraphArtifactError("Missing required edge identifier")
+        payload = service.get_edge(edge_id)
+    elif command == "neighbors":
+        if node_id is None:
+            raise GraphArtifactError("Missing required node identifier")
+        payload = service.get_neighbors(node_id, direction=direction, edge_type=edge_type)
+    else:
+        raise GraphArtifactError(f"Unsupported graph-read command: {command}")
+
+    print(json.dumps(payload, indent=2))
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -207,10 +292,29 @@ def main(argv: list[str] | None = None) -> int:
             return run_query(args.artifacts_dir, args.query_command, identifier)
         if args.command == "graph":
             return run_graph(args.artifacts_dir, args.output_dir)
+        if args.command == "graph-read":
+            return run_graph_read(
+                args.artifacts_dir,
+                args.graph_read_command,
+                node_id=getattr(args, "node_id", None),
+                edge_id=getattr(args, "edge_id", None),
+                node_type=getattr(args, "type", None) if args.graph_read_command == "nodes" else None,
+                edge_type=(
+                    getattr(args, "type", None)
+                    if args.graph_read_command == "edges"
+                    else getattr(args, "edge_type", None)
+                ),
+                source=getattr(args, "source", None),
+                target=getattr(args, "target", None),
+                direction=getattr(args, "direction", "both"),
+            )
     except FeedLoadError as exc:
         print(f"Error: {exc}")
         return 1
     except (QueryArtifactError, QueryLookupError) as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        return 1
+    except (GraphArtifactError, GraphLookupError) as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
 
