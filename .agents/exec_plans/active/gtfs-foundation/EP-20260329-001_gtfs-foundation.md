@@ -6,7 +6,7 @@ kind: feature
 domain: cross-cutting
 owner: "@codex"
 created: 2026-03-29
-updated: 2026-03-30
+updated: 2026-04-02
 tags: [gtfs, foundation, ingestion, modeling, validation, workflow]
 touches: [api, db, cli, tests, docs, agents]
 risk: med
@@ -43,6 +43,8 @@ The first user-visible proof point is intentionally local and backend-first. A d
 - [x] (2026-03-30T21:05:00Z) Completed `MS005` by adding shared validated artifact loading, graph artifact generation, the `graph` CLI command, and deterministic `graph_nodes.json` and `graph_edges.json` outputs with compatibility tests proving existing query behavior was unchanged.
 - [x] (2026-03-30T22:05:00Z) Completed `MS006` by adding graph artifact loading, `GraphService`, `graph-read` CLI commands for nodes, node, edges, edge, and neighbors, and tests covering graph read validation, lookup, adjacency, CLI filters, and stderr failure behavior.
 - [x] (2026-03-30T22:10:00Z) Archived `MS006`, updated the ExecPlan living sections, and updated `registry.json` so the planning metadata matches the implemented repository state.
+- [x] (2026-04-02T00:00:00Z) Reconciled post-migration planning state under `.agents/`, recorded `MS007`, and created the archived milestone document for deterministic graph index artifacts.
+- [x] (2026-04-02T00:00:00Z) Completed `MS007` by generating `graph_node_index.json` and `graph_edge_index.json` from persisted graph artifacts, validating exact graph-index compatibility, and keeping `graph-read` behavior identical with and without indexes.
 
 ## Surprises & Discoveries
 
@@ -69,6 +71,12 @@ The first user-visible proof point is intentionally local and backend-first. A d
 
 - Observation: The graph-read CLI can stay strictly read-only without extra recovery logic because missing `graph_nodes.json` and `graph_edges.json` already produce a clear artifact error at the loader boundary.
   Evidence: `tests/test_graph_read.py::test_load_graph_bundle_rejects_missing_graph_artifacts_without_recovery` and `tests/test_graph_read.py::test_cli_graph_read_failures_print_to_stderr_and_do_not_generate_artifacts` both pass with explicit missing-file errors and no artifact regeneration.
+
+- Observation: The repository planning workspace has moved from `.agent/` to `.agents/`, so milestone hygiene now has to target the migrated path even when older notes still refer to the pre-migration location.
+  Evidence: On 2026-04-02, repository listing and `.agents/exec_plans/registry.json` showed the active planning tree only under `.agents/`.
+
+- Observation: Exact index compatibility is simplest to enforce by validating the loaded JSON payloads against the expected serialized payloads derived from the loaded graph bundle, rather than by maintaining a second manual validator with parallel logic.
+  Evidence: `tests/test_graph_read.py` now covers stale versions, partial index presence, extra IDs, and missing IDs through direct payload mismatch checks against the loaded graph artifacts.
 
 ## Decision Log
 
@@ -136,6 +144,14 @@ The first user-visible proof point is intentionally local and backend-first. A d
   Rationale: Future traversal and visualization consumers need stable neighbor lists without losing the exact edge set that produced those neighbors.
   Date/Author: 2026-03-30 / @codex
 
+- Decision: Keep MS007 index artifacts minimal by excluding a separate `adjacency` structure and deriving neighbor traversal from `edge_positions_by_source` and `edge_positions_by_target`.
+  Rationale: The amended milestone plan explicitly removed adjacency as redundant, which keeps the artifact family smaller and avoids inconsistency between multiple derived traversal structures.
+  Date/Author: 2026-04-02 / @codex
+
+- Decision: Treat `graph_node_index.json` and `graph_edge_index.json` as an atomic read-time pair that must either both be absent or both validate exactly against the loaded graph artifacts.
+  Rationale: This prevents ambiguous hybrid states and satisfies the amended requirement that index-backed reads remain an internal optimization only, never a distinct behavior path.
+  Date/Author: 2026-04-02 / @codex
+
 ## Outcomes & Retrospective
 
 The foundation milestones `MS001` through `MS003` are complete. The repository now has a local-first GTFS-static foundation with raw feed loading, normalized GTFS entities, baseline relationship mapping, structured validation findings, fixed severity codes, and explicit partial-ingestion behavior. A valid feed writes all four artifacts, a warning-only feed preserves successful ingestion with surfaced warnings, and an invalid feed exits non-zero while writing only the raw summary and validation report.
@@ -145,6 +161,8 @@ The foundation milestones `MS001` through `MS003` are complete. The repository n
 `MS005` then added the first visualization-prep outputs: deterministic graph nodes and edges derived from validated artifacts, again without changing ingest or query behavior. `MS006` is the next logical layer on top of that work: graph-native read access and traversal over generated graph artifacts.
 
 `MS006` is now complete. The repository can read generated graph artifacts directly, validate their structure, inspect nodes and edges, and traverse neighbors through deterministic read-only CLI commands. The main lesson from this milestone is that graph generation and graph reading needed separate module boundaries just as clearly as query and validation did.
+
+`MS007` is now complete. Graph generation also emits deterministic graph index artifacts derived strictly from `graph_nodes.json` and `graph_edges.json`, and graph reads can use those indexes read-only without changing outputs, ordering, or lookup semantics. The main lesson from this milestone is that precomputed graph lookup structures can stay useful and safe only when they are treated as exact derived artifacts rather than as a second source of graph truth.
 
 ## Context and Orientation
 
@@ -158,7 +176,7 @@ Future contributors should assume that `sample-data/` will hold small, purpose-b
 
 ## Plan of Work
 
-The work now proceeds in six milestones because each milestone produces a new observable capability while minimizing cross-dependencies.
+The work now proceeds in seven milestones because each milestone produces a new observable capability while minimizing cross-dependencies.
 
 The first milestone establishes the repository's execution contract. It should create the Python project skeleton in `src/`, define a single local entry point for feed ingestion, add minimal fixture feeds under `sample-data/fixtures/`, and add a test command under `tests/` that proves the repository can load a GTFS-static feed from disk. The output at the end of this milestone is not a full relationship engine. It is a reproducible developer workflow with a clear command, a clear test suite, and a clear repository structure for subsequent work.
 
@@ -171,6 +189,8 @@ The fourth milestone adds consumer-facing exploration without introducing a UI f
 The fifth milestone adds visualization-prep artifacts without introducing a UI. It should transform validated artifacts into deterministic route, trip, and stop nodes plus route-to-trip and trip-to-stop edges, then write `graph_nodes.json` and `graph_edges.json`. Graph generation must remain additive, deterministic, and compatible with existing query behavior.
 
 The sixth milestone adds graph-native inspection. It should load graph artifacts directly, validate their structure, and expose read-only node lookup, edge lookup, filtering, and adjacency traversal through dedicated CLI commands. This milestone must not regenerate graph artifacts, must not depend on `QueryService`, and must keep graph artifact failures separate from lookup failures.
+
+The seventh milestone adds deterministic graph indexes as a strict derivative layer over generated graph artifacts. It should create `graph_node_index.json` and `graph_edge_index.json` from the persisted graph files, validate exact compatibility at read time, treat partial index presence as fatal, and preserve graph-read behavior exactly when both indexes are absent and the service falls back to its in-memory structures.
 
 ## Concrete Steps
 
@@ -253,7 +273,8 @@ The required planning artifacts for this ExecPlan live at:
     .agents/exec_plans/active/gtfs-foundation/milestones/archive/MS003_gtfs-foundation.md
     .agents/exec_plans/active/gtfs-foundation/milestones/archive/MS004_gtfs-foundation.md
     .agents/exec_plans/active/gtfs-foundation/milestones/archive/MS005_gtfs-foundation.md
-    .agents/exec_plans/active/gtfs-foundation/milestones/active/MS006_gtfs-foundation.md
+    .agents/exec_plans/active/gtfs-foundation/milestones/archive/MS006_gtfs-foundation.md
+    .agents/exec_plans/active/gtfs-foundation/milestones/archive/MS007_gtfs-foundation.md
 
 The fixtures that should be introduced during implementation are:
 
@@ -324,3 +345,4 @@ Change note: 2026-03-29. Updated the plan after completing `MS003` to reflect th
 Change note: 2026-03-30. Extended the plan with `MS004` for artifact-backed route, trip, and stop queries with fixed JSON response shapes, minimal artifact validation, and explicit artifact-versus-lookup error handling.
 Change note: 2026-03-30. Reconciled the living plan with the actual repo by recording completed `MS004` and `MS005`, archiving their milestone documents, and activating `MS006` before graph-read implementation.
 Change note: 2026-03-30. Updated the plan after completing `MS006` to reflect graph artifact loading, graph-native traversal, strict read-only graph inspection commands, and the archived milestone state.
+Change note: 2026-04-02. Updated the plan after completing `MS007` to reflect deterministic graph index artifacts, exact graph-index compatibility validation, atomic index-pair loading, and behavior-equivalent indexed and fallback graph reads.

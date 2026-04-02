@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-01T23:15:00Z",
+  "generated_at": "2026-04-02T00:00:00Z",
   "plans": [
     {
       "id": "EP-20260401-001",
@@ -51,7 +51,7 @@
       "domain": "cross-cutting",
       "owner": "@codex",
       "created": "2026-03-29",
-      "updated": "2026-03-30",
+      "updated": "2026-04-02",
       "tags": [
         "gtfs",
         "foundation",
@@ -121,6 +121,13 @@
           "title": "Add graph-native read and traversal commands",
           "status": "done",
           "path": ".agents/exec_plans/active/gtfs-foundation/milestones/archive/MS006_gtfs-foundation.md"
+        },
+        {
+          "id": "EP-20260329-001/MS007",
+          "ms": 7,
+          "title": "Add deterministic graph index artifacts",
+          "status": "done",
+          "path": ".agents/exec_plans/active/gtfs-foundation/milestones/archive/MS007_gtfs-foundation.md"
         }
       ]
     }

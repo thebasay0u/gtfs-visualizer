@@ -11,6 +11,8 @@ class GraphArtifactError(ValueError):
 
 @dataclass(slots=True)
 class GraphBundle:
+    node_artifact_version: int
+    edge_artifact_version: int
     nodes: list[dict[str, object]]
     edges: list[dict[str, object]]
 
@@ -33,6 +35,12 @@ def _require_mapping(value: object, *, context: str) -> dict[str, object]:
 def _require_string(value: object, *, context: str) -> str:
     if not isinstance(value, str):
         raise GraphArtifactError(f"Malformed artifact structure: {context} must be a string")
+    return value
+
+
+def _require_int(value: object, *, context: str) -> int:
+    if not isinstance(value, int):
+        raise GraphArtifactError(f"Malformed artifact structure: {context} must be an integer")
     return value
 
 
@@ -82,6 +90,14 @@ def load_graph_bundle(artifacts_dir: Path) -> GraphBundle:
         context="graph_edges.json",
     )
 
+    node_artifact_version = _require_int(
+        nodes_data.get("version"),
+        context="graph_nodes.version",
+    )
+    edge_artifact_version = _require_int(
+        edges_data.get("version"),
+        context="graph_edges.version",
+    )
     nodes = _validate_nodes(nodes_data.get("nodes"))
     edges = _validate_edges(edges_data.get("edges"))
     node_ids = {str(node["id"]) for node in nodes}
@@ -93,4 +109,9 @@ def load_graph_bundle(artifacts_dir: Path) -> GraphBundle:
                 f"Invalid graph structure: edge {edge['id']} references missing node"
             )
 
-    return GraphBundle(nodes=nodes, edges=edges)
+    return GraphBundle(
+        node_artifact_version=node_artifact_version,
+        edge_artifact_version=edge_artifact_version,
+        nodes=nodes,
+        edges=edges,
+    )

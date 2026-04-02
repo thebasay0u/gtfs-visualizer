@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from gtfs_visualizer.graph.indexes import GraphIndexBundle
 from gtfs_visualizer.graph.artifacts import GraphBundle
 
 
@@ -8,8 +9,9 @@ class GraphLookupError(LookupError):
 
 
 class GraphService:
-    def __init__(self, bundle: GraphBundle) -> None:
+    def __init__(self, bundle: GraphBundle, indexes: GraphIndexBundle | None = None) -> None:
         self.bundle = bundle
+        self.indexes = indexes
         self._nodes_by_id = {str(node["id"]): node for node in bundle.nodes}
         self._edges_by_id = {str(edge["id"]): edge for edge in bundle.edges}
         self._outgoing: dict[str, list[dict[str, object]]] = {}
@@ -21,9 +23,13 @@ class GraphService:
             self._incoming.setdefault(target, []).append(edge)
 
     def list_nodes(self, node_type: str | None = None) -> dict[str, object]:
-        nodes = self.bundle.nodes
-        if node_type is not None:
-            nodes = [node for node in nodes if node["type"] == node_type]
+        if node_type is not None and self.indexes is not None:
+            positions = self.indexes.node_positions_by_type.get(node_type, [])
+            nodes = [self.bundle.nodes[position] for position in positions]
+        else:
+            nodes = self.bundle.nodes
+            if node_type is not None:
+                nodes = [node for node in nodes if node["type"] == node_type]
         ordered = sorted(nodes, key=lambda node: (str(node["type"]), str(node["entity_id"])))
         return {"nodes": ordered}
 
@@ -36,13 +42,21 @@ class GraphService:
         source: str | None = None,
         target: str | None = None,
     ) -> dict[str, object]:
-        edges = self.bundle.edges
-        if edge_type is not None:
-            edges = [edge for edge in edges if edge["type"] == edge_type]
-        if source is not None:
-            edges = [edge for edge in edges if edge["source"] == source]
-        if target is not None:
-            edges = [edge for edge in edges if edge["target"] == target]
+        if self.indexes is not None:
+            positions = self._indexed_edge_positions(
+                edge_type=edge_type,
+                source=source,
+                target=target,
+            )
+            edges = [self.bundle.edges[position] for position in positions]
+        else:
+            edges = self.bundle.edges
+            if edge_type is not None:
+                edges = [edge for edge in edges if edge["type"] == edge_type]
+            if source is not None:
+                edges = [edge for edge in edges if edge["source"] == source]
+            if target is not None:
+                edges = [edge for edge in edges if edge["target"] == target]
         ordered = sorted(
             edges,
             key=lambda edge: (
@@ -91,12 +105,24 @@ class GraphService:
         direction: str,
         edge_type: str | None,
     ) -> list[dict[str, object]]:
-        if direction == "out":
-            candidates = list(self._outgoing.get(node_id, []))
-        elif direction == "in":
-            candidates = list(self._incoming.get(node_id, []))
+        if self.indexes is not None:
+            if direction == "out":
+                positions = self.indexes.edge_positions_by_source.get(node_id, [])
+            elif direction == "in":
+                positions = self.indexes.edge_positions_by_target.get(node_id, [])
+            else:
+                positions = (
+                    self.indexes.edge_positions_by_source.get(node_id, [])
+                    + self.indexes.edge_positions_by_target.get(node_id, [])
+                )
+            candidates = [self.bundle.edges[position] for position in positions]
         else:
-            candidates = list(self._outgoing.get(node_id, [])) + list(self._incoming.get(node_id, []))
+            if direction == "out":
+                candidates = list(self._outgoing.get(node_id, []))
+            elif direction == "in":
+                candidates = list(self._incoming.get(node_id, []))
+            else:
+                candidates = list(self._outgoing.get(node_id, [])) + list(self._incoming.get(node_id, []))
 
         if edge_type is not None:
             candidates = [edge for edge in candidates if edge["type"] == edge_type]
@@ -111,6 +137,29 @@ class GraphService:
                 str(edge["id"]),
             ),
         )
+
+    def _indexed_edge_positions(
+        self,
+        *,
+        edge_type: str | None,
+        source: str | None,
+        target: str | None,
+    ) -> list[int]:
+        assert self.indexes is not None
+        positions: set[int] | None = None
+
+        if edge_type is not None:
+            positions = set(self.indexes.edge_positions_by_type.get(edge_type, []))
+        if source is not None:
+            source_positions = set(self.indexes.edge_positions_by_source.get(source, []))
+            positions = source_positions if positions is None else positions & source_positions
+        if target is not None:
+            target_positions = set(self.indexes.edge_positions_by_target.get(target, []))
+            positions = target_positions if positions is None else positions & target_positions
+        if positions is None:
+            positions = set(range(len(self.bundle.edges)))
+
+        return sorted(positions)
 
     def _require_node(self, node_id: str) -> dict[str, object]:
         node = self._nodes_by_id.get(node_id)

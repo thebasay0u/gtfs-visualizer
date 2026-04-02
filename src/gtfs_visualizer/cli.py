@@ -11,8 +11,12 @@ from gtfs_visualizer.graph import (
     GraphLookupError,
     GraphService,
     build_graph_artifacts,
+    build_graph_index_bundle,
     load_graph_bundle,
+    load_graph_index_bundle,
+    serialize_graph_edge_index,
     serialize_graph_edges,
+    serialize_graph_node_index,
     serialize_graph_nodes,
 )
 from gtfs_visualizer.models.normalized import normalize_feed, serialize_normalized_feed
@@ -232,7 +236,25 @@ def run_graph(artifacts_dir: str, output_dir: str | None = None) -> int:
     edges_path = destination / "graph_edges.json"
     edges_path.write_text(json.dumps(serialize_graph_edges(graph), indent=2), encoding="utf-8")
 
-    print(f"Graph artifacts written: {nodes_path}, {edges_path}")
+    graph_bundle = load_graph_bundle(destination)
+    index_bundle = build_graph_index_bundle(graph_bundle)
+
+    node_index_path = destination / "graph_node_index.json"
+    node_index_path.write_text(
+        json.dumps(serialize_graph_node_index(graph_bundle, index_bundle), indent=2),
+        encoding="utf-8",
+    )
+
+    edge_index_path = destination / "graph_edge_index.json"
+    edge_index_path.write_text(
+        json.dumps(serialize_graph_edge_index(graph_bundle, index_bundle), indent=2),
+        encoding="utf-8",
+    )
+
+    print(
+        "Graph artifacts written: "
+        f"{nodes_path}, {edges_path}, {node_index_path}, {edge_index_path}"
+    )
     return 0
 
 
@@ -249,7 +271,8 @@ def run_graph_read(
     direction: str = "both",
 ) -> int:
     bundle = load_graph_bundle(Path(artifacts_dir))
-    service = GraphService(bundle)
+    indexes = load_graph_index_bundle(Path(artifacts_dir), bundle)
+    service = GraphService(bundle, indexes=indexes)
 
     if command == "nodes":
         payload = service.list_nodes(node_type=node_type)
