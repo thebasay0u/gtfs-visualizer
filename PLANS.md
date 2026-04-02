@@ -9,7 +9,7 @@ Every ExecPlan must have a stable, canonical ID and a machine-readable metadata 
 - ExecPlans
 - Milestones
 - Branches / PRs / commits
-- A registry file at `.agent/exec_plans/registry.json`
+- A registry file at `.agents/exec_plans/registry.json`
 
 ### Canonical ExecPlan ID
 
@@ -23,20 +23,20 @@ This ID is the primary key for the plan. It must not change after creation.
 
 ### File location and filename convention
 
-ExecPlans are created under `.agent/exec_plans/active/<short-slug>/`:
+ExecPlans are created under `.agents/exec_plans/active/<short-slug>/`:
 
-- `.agent/exec_plans/active/<short-slug>/EP-YYYYMMDD-NNN_<short-slug>.md`
+- `.agents/exec_plans/active/<short-slug>/EP-YYYYMMDD-NNN_<short-slug>.md`
 
 Example:
 
-- `.agent/exec_plans/active/auth_refresh/EP-20260117-014_auth-refresh.md`
+- `.agents/exec_plans/active/auth_refresh/EP-20260117-014_auth-refresh.md`
 
 The slug is a short, human-friendly hint. The ID is the real identity.
 
 ### ExecPlan Creation
 
-Create an ExecPlan using `agentrules execplan new "<title>" --slug <short-slug>` (e.g. `agentrules execplan new "Auth Refresh" --slug auth-refresh`). If --slug is omitted, a slug is derived from the title. The file is generated under `.agent/exec_plans/active/<short-slug>/` as `EP-YYYYMMDD-NNN_<short-slug>.md`.
-When the ExecPlan is complete, archive the full directory with `agentrules execplan archive EP-YYYYMMDD-NNN` (optionally `--date YYYYMMDD`). Archived plans are stored under `.agent/exec_plans/archive/YYYY/MM/DD/EP-YYYYMMDD-NNN_<short-slug>/`.
+Create an ExecPlan using `agentrules execplan new "<title>" --slug <short-slug>` (e.g. `agentrules execplan new "Auth Refresh" --slug auth-refresh`). If --slug is omitted, a slug is derived from the title. The file is generated under `.agents/exec_plans/active/<short-slug>/` as `EP-YYYYMMDD-NNN_<short-slug>.md`.
+When the ExecPlan is complete, archive the full directory with `agentrules execplan archive EP-YYYYMMDD-NNN` (optionally `--date YYYYMMDD`). Archived plans are stored under `.agents/exec_plans/archive/YYYY/MM/DD/EP-YYYYMMDD-NNN_<short-slug>/`.
 
 ### Registry Creation & Update
 
@@ -92,7 +92,7 @@ Example front matter:
 
 ## How to use ExecPlans and PLANS.md
 
-When authoring an executable specification (ExecPlan), follow PLANS.md to the letter. If it is not in your context, refresh your memory by reading the entire PLANS.md file. Be thorough in reading (and re-reading) source material to produce an accurate specification. When creating a spec, start from the skeleton and flesh it out as you do your research. Create the spec within `.agent/exec_plans/active/<short-slug>/`.
+When authoring an executable specification (ExecPlan), follow PLANS.md to the letter. If it is not in your context, refresh your memory by reading the entire PLANS.md file. Be thorough in reading (and re-reading) source material to produce an accurate specification. When creating a spec, start from the skeleton and flesh it out as you do your research. Create the spec within `.agents/exec_plans/active/<short-slug>/`.
 
 When implementing an executable specification (ExecPlan), do not prompt the user for "next steps"; simply proceed to the next milestone. Keep all sections up to date, add or split entries in the list at every stopping point to affirmatively state the progress made and next steps. Resolve ambiguities autonomously, and commit frequently.
 
@@ -162,14 +162,14 @@ Milestone ID format:
 
 Milestone filename format:
 
-- `.agent/exec_plans/active/<short-slug>/milestones/active/MS###_<short-slug>.md`
-- Archive to: `.agent/exec_plans/active/<short-slug>/milestones/archive/MS###_<short-slug>.md`
+- `.agents/exec_plans/active/<short-slug>/milestones/active/MS###_<short-slug>.md`
+- Archive to: `.agents/exec_plans/active/<short-slug>/milestones/archive/MS###_<short-slug>.md`
 
 ### Instructions for Creating Milestones
 
-- Base your milestone on the template shown in `.agent/templates/MILESTONE_TEMPLATE.md`.
-- Create your milestone within `.agent/exec_plans/active/<short-slug>/milestones/active/`.
-- When your milestone is complete, archive it in `.agent/exec_plans/active/<short-slug>/milestones/archive/`.
+- Base your milestone on the template shown in `.agents/templates/MILESTONE_TEMPLATE.md`.
+- Create your milestone within `.agents/exec_plans/active/<short-slug>/milestones/active/`.
+- When your milestone is complete, archive it in `.agents/exec_plans/active/<short-slug>/milestones/archive/`.
 - Prefer CLI milestone workflow over manual file creation:
   - Create: `agentrules execplan milestone new EP-YYYYMMDD-NNN "<Milestone Title>"`
   - List: `agentrules execplan milestone list EP-YYYYMMDD-NNN` (or `--active-only`)

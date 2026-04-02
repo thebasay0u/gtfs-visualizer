@@ -1,6 +1,6 @@
 ---
 
-# 2) `.agent/templates/EXECPLAN_TEMPLATE.md`
+# 2) `.agents/templates/EXECPLAN_TEMPLATE.md`
 
 ```md
 ---

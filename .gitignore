@@ -1,2 +1,5 @@
 # Ignore prompt MD files 
 prompts-and-responses/
+
+# Optional local compatibility alias during .agent -> .agents migration.
+.agent

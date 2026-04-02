@@ -33,7 +33,7 @@ The first user-visible proof point is intentionally local and backend-first. A d
 ## Progress
 
 - [x] (2026-03-29T20:04:11Z) Read `AGENTS.md` and `PLANS.md`, confirmed that no prior ExecPlans or milestones exist, and reserved `EP-20260329-001` as the first canonical plan ID for this repository.
-- [x] (2026-03-29T20:04:11Z) Authored this ExecPlan and defined the initial milestone set `MS001` through `MS003` under `.agent/exec_plans/active/gtfs-foundation/`.
+- [x] (2026-03-29T20:04:11Z) Authored this ExecPlan and defined the initial milestone set `MS001` through `MS003` under `.agents/exec_plans/active/gtfs-foundation/`.
 - [x] (2026-03-29T23:24:43Z) Completed `MS001` by adding a repository-local Python virtual environment workflow, fixture-based GTFS-static test feeds, a single ingestion entry point, and an automated test loop that proves raw feed loading works.
 - [x] (2026-03-30T00:10:38Z) Completed `MS002` by adding normalized GTFS entity models, a separate relationship mapping layer, the `normalized_entities.json` and `relationships.json` artifacts, and fixture-driven tests that prove optional shapes do not break relationship mapping.
 - [x] (2026-03-30T04:50:08Z) Completed `MS003` by adding a dedicated validation layer, fixed v1 validation codes, `validation_report.json`, explicit partial-ingestion reporting, fatal artifact suppression for normalized and relationship outputs, and fixture-driven tests for valid, warning-only, invalid, duplicate-id, and unknown-shape scenarios.
@@ -46,7 +46,7 @@ The first user-visible proof point is intentionally local and backend-first. A d
 
 ## Surprises & Discoveries
 
-- Observation: The repository already includes the required planning scaffolding under `.agent/`, but the helper CLI commands referenced by `PLANS.md` are not installed in the current shell session.
+- Observation: The repository already includes the required planning scaffolding under `.agents/`, but the helper CLI commands referenced by `PLANS.md` are not installed in the current shell session.
   Evidence: `Get-Command agentrules` returned "The term 'agentrules' is not recognized as a name of a cmdlet, function, script file, or executable program."
 
 - Observation: The implementation directories `src/`, `tests/`, `docs/`, and `sample-data/` are present but currently empty, so this first ExecPlan must define both structure and workflow rather than extending existing application code.
@@ -148,7 +148,7 @@ The foundation milestones `MS001` through `MS003` are complete. The repository n
 
 ## Context and Orientation
 
-As of 2026-03-29 after completing `MS003`, this repository contains `AGENTS.md`, `PLANS.md`, `.agent/templates/`, a Python project definition in `pyproject.toml`, implementation code under `src/gtfs_visualizer/`, fixture feeds under `sample-data/fixtures/`, and automated tests under `tests/`. There is still no UI or persistence layer, but there are now dedicated modules for raw ingestion, normalized models, relationship mapping, and validation under `src/gtfs_visualizer/`.
+As of 2026-03-29 after completing `MS003`, this repository contains `AGENTS.md`, `PLANS.md`, `.agents/templates/`, a Python project definition in `pyproject.toml`, implementation code under `src/gtfs_visualizer/`, fixture feeds under `sample-data/fixtures/`, and automated tests under `tests/`. There is still no UI or persistence layer, but there are now dedicated modules for raw ingestion, normalized models, relationship mapping, and validation under `src/gtfs_visualizer/`.
 
 This plan uses four plain-language terms consistently. A "GTFS-static feed" means the bundle of text files such as `routes.txt`, `trips.txt`, `stops.txt`, `stop_times.txt`, `calendar.txt`, and optional files like `shapes.txt` and `calendar_dates.txt`. A "normalized model" means an internal representation that stores one source of truth per entity type with stable keys and explicit fields, rather than passing raw tables throughout the codebase. A "relationship graph" means the validated links across those normalized entities, such as which trips belong to which route and which stop times refer to which stop. A "validation report" means a structured list of issues with severity, message, entity references, and whether the feed can proceed to downstream use.
 
@@ -247,13 +247,13 @@ If a contributor makes a design change while implementing this plan, they must u
 
 The required planning artifacts for this ExecPlan live at:
 
-    .agent/exec_plans/active/gtfs-foundation/EP-20260329-001_gtfs-foundation.md
-    .agent/exec_plans/active/gtfs-foundation/milestones/archive/MS001_gtfs-foundation.md
-    .agent/exec_plans/active/gtfs-foundation/milestones/archive/MS002_gtfs-foundation.md
-    .agent/exec_plans/active/gtfs-foundation/milestones/archive/MS003_gtfs-foundation.md
-    .agent/exec_plans/active/gtfs-foundation/milestones/archive/MS004_gtfs-foundation.md
-    .agent/exec_plans/active/gtfs-foundation/milestones/archive/MS005_gtfs-foundation.md
-    .agent/exec_plans/active/gtfs-foundation/milestones/active/MS006_gtfs-foundation.md
+    .agents/exec_plans/active/gtfs-foundation/EP-20260329-001_gtfs-foundation.md
+    .agents/exec_plans/active/gtfs-foundation/milestones/archive/MS001_gtfs-foundation.md
+    .agents/exec_plans/active/gtfs-foundation/milestones/archive/MS002_gtfs-foundation.md
+    .agents/exec_plans/active/gtfs-foundation/milestones/archive/MS003_gtfs-foundation.md
+    .agents/exec_plans/active/gtfs-foundation/milestones/archive/MS004_gtfs-foundation.md
+    .agents/exec_plans/active/gtfs-foundation/milestones/archive/MS005_gtfs-foundation.md
+    .agents/exec_plans/active/gtfs-foundation/milestones/active/MS006_gtfs-foundation.md
 
 The fixtures that should be introduced during implementation are:
 
