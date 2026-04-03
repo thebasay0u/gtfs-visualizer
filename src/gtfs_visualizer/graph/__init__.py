@@ -7,6 +7,11 @@ from gtfs_visualizer.graph.builder import (
     serialize_graph_edges,
     serialize_graph_nodes,
 )
+from gtfs_visualizer.graph.enrichment import (
+    GraphEnrichmentArtifacts,
+    build_graph_enrichment_artifacts,
+    serialize_graph_enrichment_edges,
+)
 from gtfs_visualizer.graph.indexes import (
     GraphIndexBundle,
     build_graph_index_bundle,
@@ -20,15 +25,18 @@ __all__ = [
     "GraphArtifactError",
     "GraphArtifacts",
     "GraphBundle",
+    "GraphEnrichmentArtifacts",
     "GraphIndexBundle",
     "GraphLookupError",
     "GraphService",
     "build_graph_artifacts",
+    "build_graph_enrichment_artifacts",
     "build_graph_index_bundle",
     "load_graph_index_bundle",
     "load_graph_bundle",
     "serialize_graph_edge_index",
     "serialize_graph_edges",
+    "serialize_graph_enrichment_edges",
     "serialize_graph_node_index",
     "serialize_graph_nodes",
 ]

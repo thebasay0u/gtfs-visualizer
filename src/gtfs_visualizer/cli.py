@@ -11,11 +11,13 @@ from gtfs_visualizer.graph import (
     GraphLookupError,
     GraphService,
     build_graph_artifacts,
+    build_graph_enrichment_artifacts,
     build_graph_index_bundle,
     load_graph_bundle,
     load_graph_index_bundle,
     serialize_graph_edge_index,
     serialize_graph_edges,
+    serialize_graph_enrichment_edges,
     serialize_graph_node_index,
     serialize_graph_nodes,
 )
@@ -73,6 +75,16 @@ def build_parser() -> argparse.ArgumentParser:
     graph_parser.add_argument(
         "--output-dir",
         help="Directory where graph artifacts will be written. Defaults to the artifacts directory.",
+    )
+
+    graph_enrich_parser = subparsers.add_parser(
+        "graph-enrich",
+        help="Generate additive graph enrichment artifacts from graph and graph-index artifacts.",
+    )
+    graph_enrich_parser.add_argument("artifacts_dir", help="Directory containing graph artifacts.")
+    graph_enrich_parser.add_argument(
+        "--output-dir",
+        help="Directory where graph enrichment artifacts will be written. Defaults to the artifacts directory.",
     )
 
     graph_read_parser = subparsers.add_parser(
@@ -258,6 +270,30 @@ def run_graph(artifacts_dir: str, output_dir: str | None = None) -> int:
     return 0
 
 
+def run_graph_enrich(artifacts_dir: str, output_dir: str | None = None) -> int:
+    destination = Path(output_dir) if output_dir is not None else Path(artifacts_dir)
+    destination.mkdir(parents=True, exist_ok=True)
+
+    graph_bundle = load_graph_bundle(Path(artifacts_dir))
+    indexes = load_graph_index_bundle(Path(artifacts_dir), graph_bundle)
+    # MS008 Sections 1 and 6 require graph-enrich to fail fast when graph indexes are absent
+    # instead of regenerating or traversing the graph through a fallback path.
+    if indexes is None:
+        raise GraphArtifactError(
+            "Missing required graph index artifacts: graph_node_index.json and "
+            "graph_edge_index.json"
+        )
+
+    enrichment = build_graph_enrichment_artifacts(graph_bundle, indexes)
+    enrichment_path = destination / "graph_enrichment_edges.json"
+    enrichment_path.write_text(
+        json.dumps(serialize_graph_enrichment_edges(enrichment), indent=2),
+        encoding="utf-8",
+    )
+    print(f"Graph enrichment artifacts written: {enrichment_path}")
+    return 0
+
+
 def run_graph_read(
     artifacts_dir: str,
     command: str,
@@ -315,6 +351,8 @@ def main(argv: list[str] | None = None) -> int:
             return run_query(args.artifacts_dir, args.query_command, identifier)
         if args.command == "graph":
             return run_graph(args.artifacts_dir, args.output_dir)
+        if args.command == "graph-enrich":
+            return run_graph_enrich(args.artifacts_dir, args.output_dir)
         if args.command == "graph-read":
             return run_graph_read(
                 args.artifacts_dir,
