@@ -1,0 +1,11 @@
+# Codex example configuration (config.toml)
+#
+# This file lists the main keys Codex reads from config.toml, along with default
+# behaviors, recommended examples, and concise explanations. Adjust as needed.
+#
+# Notes
+# - Root keys must appear before tables in TOML.
+# - Optional keys that default to "unset" are shown commented out with notes.
+# - MCP servers, profiles, and model providers are examples; remove or edit.
+
+

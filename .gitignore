@@ -3,3 +3,6 @@ prompts-and-responses/
 
 # Optional local compatibility alias during .agent -> .agents migration.
 .agent
+
+#ignore config files
+.codex/config.toml

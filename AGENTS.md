@@ -239,6 +239,9 @@ Milestones:
 - Do NOT tightly couple GTFS entities
 - Do NOT block UI on heavy computations
 - Do NOT assume GTFS feeds are clean or complete
+- Invoke `$check-the-comments` during implementation tasks that touch `.py`, `.ts`, or `.tsx` files.
+- When invoking `$check-the-comments`, specify exact file paths to touch; do not apply recursively across the repository unless explicitly requested.
+- Apply comment enforcement to new/modified implementation work only by default, not as a retroactive whole-repo rewrite.
 
 ---
 
